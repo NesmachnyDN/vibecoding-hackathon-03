@@ -25,7 +25,7 @@ Current phase/timebox is owned by `workflow/STATE.md`; абсолютный де
 |---|---|---|---|
 | S1 / I001 | Первый runnable dashboard + scoring + detail | Демоданные дают объяснимый портфельный обзор; критический проект можно открыть | DONE |
 | S2 / I002 | CSV upload, risk/stage filters, validation/error recovery | Пользователь загружает свой файл и быстро отбирает проблемные проекты | DONE |
-| S3 | Optional AI recommendation | Не начинается после закрытия Must: live provider readiness не подтверждён, функция optional | DROPPED |
+| S3 | Optional AI recommendation | Не входит в финальный scope: принят `AI_USAGE_DECISION=NO_AI`, итоговая рекомендация детерминирована | DROPPED |
 | S4 / I003 | Stabilize/finalize/demo/submission preparation | Воспроизводимый deterministic продукт и фактические доказательства готовы к финальному acceptance | ACTIVE |
 
 Allowed: `NOT_STARTED | ACTIVE | DONE | DROPPED`.

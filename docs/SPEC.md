@@ -1,6 +1,6 @@
 # Product Specification
 
-Status: `READY_FOR_IMPLEMENTATION`
+Status: `FINAL_CANDIDATE`
 
 ## Task and user
 
@@ -16,7 +16,6 @@ Status: `READY_FOR_IMPLEMENTATION`
 3. Загрузить CSV и получить пересчитанное представление без перезапуска приложения.
 4. Отфильтровать проблемные проекты по уровню риска и этапу.
 5. Открыть критический проект и увидеть показатели, причины оценки, комментарий и детерминированную рекомендацию.
-6. При доступном совместимом API — получить дополнительную ИИ-рекомендацию; при недоступности API основной поток остаётся рабочим и показывает понятный статус.
 
 ## Scope
 
@@ -85,8 +84,8 @@ Expected fixture results for the six supplied projects:
 | AC-003 | Панель показывает total, high+critical, без просрочки, top проблемных и распределение уровней | Six-row fixture: total=6, high+critical=3, no-overdue=2, distribution 2/1/1/2 |
 | AC-004 | Фильтры риска и этапа совместно ограничивают таблицу и связанные представления без перезагрузки | Browser filter scenarios |
 | AC-005 | Карточка выбранного проекта показывает показатели, причины, комментарий и детерминированное действие | Select «Платёжный шлюз» and inspect detail |
-| AC-006 | Без API-ключа/при ошибке API все Must-функции работают, а ИИ-секция сообщает о недоступности без fake success | Run without credentials / forced failed connection |
-| AC-007 | При доступном совместимом API оператор может получить дополнительную краткую рекомендацию; токен не хранится в source/storage/URL/logs и теряется при reload/close | Live browser preflight when credential available + storage inspection |
+| AC-006 | Основной поток полностью работает без API, внешней сети и скрытого AI fallback | Browser scenario + static network inspection |
+| AC-007 | Исключён из финального claimed scope: опциональная AI-функция не реализована, а незавершённые controls отсутствуют | UI/source/README inspection |
 | AC-008 | Основной экран понятен на ноутбуке, проблемные проекты визуально выделены, критические действия и состояния читаемы | Manual review at target laptop viewport |
 | AC-009 | Чистый checkout запускается открытием `index.html` без установки project dependencies; повторный запуск не требует setup | Execute README first/subsequent-run paths |
 
@@ -109,49 +108,49 @@ Expected fixture results for the six supplied projects:
 |---|---|
 | Browser/OS/runtime constraints | Must-path требует только современный desktop browser; конкретная event-машина не preflighted, non-blocking |
 | Docker/Compose | N/A для выбранного STATIC_SINGLE_FILE; task не требует Docker |
-| Internet/registries | N/A для Must; интернет нужен только опциональному AI |
+| Internet/registries | N/A; приложение не использует внешнюю сеть |
 | Official repository/CI capability | GitHub repository write access confirmed; project CI не требуется по принятому контракту |
-| External/internal API reachability | NOT_RUN; опциональный AI |
-| Direct browser API viability (provider policy/CORS/origin) | NOT_RUN; проверяется ранним bounded gate при наличии операторских параметров |
-| Network route for external APIs (direct/TUN/env proxy/internal) | UNKNOWN; уточняется только для опционального AI |
-| Proxy/VPN/runtime transport compatibility | UNKNOWN; Must не зависит от внешней сети |
-| Data-transfer restrictions | В задании запрета не указано; для AI до отдельного разрешения использовать только синтетические/демо-данные |
-| Required credential/service presence | AI credential NOT_PROVIDED / non-blocking |
+| External/internal API reachability | N/A; внешние API не используются |
+| Direct browser API viability (provider policy/CORS/origin) | N/A |
+| Network route for external APIs (direct/TUN/env proxy/internal) | N/A |
+| Proxy/VPN/runtime transport compatibility | N/A |
+| Data-transfer restrictions | CSV и его содержимое остаются локально в браузере |
+| Required credential/service presence | N/A |
 
 ENVIRONMENT_BLOCKERS: none
 
 ## AI decision
 
-- AI_USAGE_DECISION: USE_AI (optional enhancement; not a Must dependency)
+- AI_USAGE_DECISION: NO_AI
 - Deterministic baseline: прозрачный risk score + правила формирования дальнейших действий полностью закрывают обязательную функциональность.
-- AI_USE_CASE: краткая управленческая формулировка по показателям выбранного проекта и его комментарию.
-- AI_VALUE_OVER_DETERMINISTIC: более естественная суммаризация контекста для жюри/руководителя; не используется для расчёта уровня риска.
-- AI_EXECUTION_CONTOUR: browser-direct OpenAI-compatible API when verified; otherwise deterministic fallback.
-- AI_PROVIDER_PROFILE: operator-configurable compatible endpoint/model; provider/model не фиксируются без live verification.
+- AI_USE_CASE: N/A; опциональная функция не реализована до feature freeze.
+- AI_VALUE_OVER_DETERMINISTIC: N/A; детерминированная рекомендация достаточна для итогового scope.
+- AI_EXECUTION_CONTOUR: N/A.
+- AI_PROVIDER_PROFILE: N/A.
 - AI_REUSE_POLICY/SOURCE: no product-code reuse planned.
-- AI_CREDENTIAL_MODE: OPERATOR_SESSION_BYOK
-- AI_SECRET_HANDLING: masked input, page-memory only; no source/config/localStorage/IndexedDB/cookies/URL/logging/echo; re-entry after reload/close.
-- AI_OUTPUT_VALIDATION: plain text only, bounded length, displayed as optional AI output; never executable; clear error/unavailable state.
-- AI_EVALUATION/FALLBACK: representative synthetic projects; on any provider failure keep deterministic recommendation and show unavailable/degraded status.
-- AI_PROVIDER_READINESS: NOT_RUN
-- AI_BROWSER_DIRECT_READINESS: NOT_RUN
-- AI_NETWORK_PATH: UNKNOWN
-- AI_MODEL_STATUS: UNKNOWN
-- AI_PREFLIGHT_EVIDENCE: live credential/path unavailable during intake; no PASS claim.
-- AI_PROVIDER_CONTINGENCY: deterministic recommendation; do not promote to backend solely to rescue optional AI.
-- AI_PROVIDER_DEBUG_BUDGET_MIN: 10
+- AI_CREDENTIAL_MODE: N/A
+- AI_SECRET_HANDLING: N/A; runtime не принимает и не обрабатывает токены.
+- AI_OUTPUT_VALIDATION: N/A.
+- AI_EVALUATION/FALLBACK: N/A; пользователь получает только детерминированную рекомендацию.
+- AI_PROVIDER_READINESS: N/A
+- AI_BROWSER_DIRECT_READINESS: N/A
+- AI_NETWORK_PATH: N/A
+- AI_MODEL_STATUS: N/A
+- AI_PREFLIGHT_EVIDENCE: N/A; AI не входит в финальный продукт.
+- AI_PROVIDER_CONTINGENCY: N/A.
+- AI_PROVIDER_DEBUG_BUDGET_MIN: N/A
 
 ## Stack and delivery
 
 - STACK_DECISION: self-contained vanilla HTML/CSS/JavaScript using browser File API and DOM; no framework/package/runtime dependency.
 - EXECUTABLE_ARTIFACT: YES
 - DELIVERY_PROFILE: STATIC_SINGLE_FILE
-- DELIVERY_RATIONALE: complete Must scope (CSV parsing, deterministic scoring, dashboard, filtering, detail) has no real server/database/background responsibility and can run entirely in-browser. Optional AI is not allowed to force backend complexity.
-- STATIC_BROWSER_API_EVIDENCE: NOT_RUN for optional AI only; Must browser functionality is network-independent.
+- DELIVERY_RATIONALE: complete scope (CSV parsing, deterministic scoring, dashboard, filtering, detail) has no server/database/background responsibility and runs entirely in-browser.
+- STATIC_BROWSER_API_EVIDENCE: N/A; внешние API не используются.
 - Simpler profile rejected because: N/A; simplest compliant profile selected.
 - COMMAND_FACADE: DIRECT_OPEN
 - Canonical build/open/start/stop/test: build=N/A; open=`index.html`; start=open in browser; stop=close tab; verification=browser scenarios from AC.
-- Required config names/ports/state: none for Must; optional AI fields `endpoint`, `model`, `token`; no fixed port.
+- Required config names/ports/state: none.
 
 ## Project CI
 
@@ -167,9 +166,9 @@ ENVIRONMENT_BLOCKERS: none
 - Primary surface/user task: management dashboard for immediate portfolio triage, then project detail.
 - Demo viewport/device: laptop, target 1366×768; must remain usable at ≥1024 px width.
 - Visual direction/design system: restrained professional light dashboard; clear hierarchy; semantic risk colors; minimal card count; content-first table and detail panel.
-- Required states/accessibility/responsive expectations: visible loading/not-applicable only when needed; empty/CSV-error/AI-unavailable states; keyboard reachable interactive controls; visible focus; readable labels/contrast; no horizontal breakage at target viewport.
-- AI settings UX when applicable: compact settings/dialog with endpoint/model plus masked token; explicit «Проверить соединение» and status; no secret echo/persistence; explain re-entry after reload.
+- Required states/accessibility/responsive expectations: visible empty/CSV-error/success states; keyboard reachable interactive controls; visible focus; readable labels/contrast; no horizontal breakage at target viewport.
+- AI settings UX when applicable: N/A; AI controls отсутствуют.
 
 ## Open blockers
 
-- none. Optional AI provider/browser readiness is unresolved but explicitly non-blocking.
+- none.
