@@ -4,14 +4,14 @@ SUBMISSION_STATUS: NOT_READY
 PROJECT_NAME: Контроль проектных рисков
 OFFICIAL_PRIMARY_REPOSITORY: NesmachnyDN/vibecoding-hackathon-03
 DELIVERABLE_LANGUAGE: RU
-FINAL_REF: NOT_SET
-FINAL_COMMIT_SHA: NOT_SET
-FINAL_CONTENT_SHA: NOT_SET
-SUBMISSION_TIMESTAMP: NOT_SET
+FINAL_REF: main
+FINAL_COMMIT_SHA: f8645473c7c61b00e4ada0bcc9027d900a708db9
+FINAL_CONTENT_SHA: f8645473c7c61b00e4ada0bcc9027d900a708db9
+SUBMISSION_TIMESTAMP: 2026-09-10T00:40:18+07:00
 OFFICIAL_SUBMISSION_MECHANISM: UNKNOWN_FROM_TASK
 CI_REQUIRED: NO
 CI_STATUS: N/A
-OFFICIAL_PRIMARY_SHA: NOT_SET
+OFFICIAL_PRIMARY_SHA: f8645473c7c61b00e4ada0bcc9027d900a708db9
 
 Allowed status: `NOT_READY | READY | BLOCKED`.
 
@@ -19,28 +19,28 @@ Allowed status: `NOT_READY | READY | BLOCKED`.
 
 | Artifact | Required? | Final location/status |
 |---|---|---|
-| Source repository / source code | YES | NesmachnyDN/vibecoding-hackathon-03 / NOT_VERIFIED |
-| README with launch instructions | YES | `README.md` / draft intake contract only |
-| Runnable application | YES | planned `index.html` / NOT_CREATED |
-| Working demo scenario | YES | NOT_VERIFIED |
-| Architecture description | YES | README/SPEC contain design decision; final description NOT_VERIFIED |
-| Risk scoring algorithm description | YES | `docs/SPEC.md` contains fixed contract; runtime match NOT_VERIFIED |
-| Presentation for judges | YES | NOT_CREATED |
+| Source repository / source code | YES | `main` / content baseline `f8645473c7c61b00e4ada0bcc9027d900a708db9` / VERIFIED |
+| README with launch instructions | YES | `README.md` / first-run + subsequent-run VERIFIED |
+| Runnable application | YES | корневой `index.html` / VERIFIED direct-open |
+| Working demo scenario | YES | VERIFIED in Chrome 153 at 1366×768 and 1024×768 |
+| Architecture description | YES | `README.md` + `docs/SPEC.md` / VERIFIED current scope |
+| Risk scoring algorithm description | YES | `README.md` + `docs/SPEC.md` / runtime exact fixture match VERIFIED |
+| Presentation for judges | YES | NOT_CREATED / PENDING_CHAT_GENERATION |
 
 ## Final run/demo
 
 - DELIVERY_PROFILE: STATIC_SINGLE_FILE
-- Canonical artifact/open/start command: target `index.html` direct-open / NOT_VERIFIED
-- Demo happy path/result: NOT_SET
+- Canonical artifact/open/start command: `xdg-open index.html` from repository root / VERIFIED twice from clean committed checkout
+- Demo happy path/result: scores `46/3/100/22/58/0`, KPI `6/3/2`, distribution `2/1/1/2`, установленный top-3, valid/invalid CSV, filters/zero/restore and critical detail / PASS
 - CI evidence: N/A by resolved contract
-- Demo rehearsed: NO
+- Demo rehearsed: YES
 
 ## Final compliance
 
-- Must/hard gates: core must work without external AI; CSV/demo data, scoring/dashboard/filter/detail/recommendation required; README + architecture + algorithm + presentation required.
-- Required disclosures/licenses: UNKNOWN / no external dependency planned.
-- Repository sync/parity: NOT_VERIFIED
-- No secrets/confidential data: final verification required; task explicitly forbids storing API keys/tokens in repository.
+- Must/hard gates: product/README/architecture/algorithm/demo PASS; mandatory presentation remains PENDING_CHAT_GENERATION, therefore `SUBMISSION_STATUS` remains `NOT_READY`.
+- Required disclosures/licenses: N/A — no external runtime dependencies, libraries, fonts, images or copied product assets.
+- Repository sync/parity: content baseline push/fetch PASS at `f8645473c7c61b00e4ada0bcc9027d900a708db9`; final metadata commit parity is recorded in I003 handoff after push.
+- No secrets/confidential data: PASS — synthetic fixture only; high-confidence secret scan clean; CSV remains local and runtime has no storage/log/network path.
 
 ## Finalize protocol
 

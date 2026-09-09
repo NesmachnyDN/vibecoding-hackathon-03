@@ -1,6 +1,6 @@
 # Implementation Plan
 
-Status: `FINALIZING`
+Status: `READY_FOR_FINAL_ACCEPTANCE`
 
 ## Strategy
 
@@ -26,13 +26,13 @@ Current phase/timebox is owned by `workflow/STATE.md`; абсолютный де
 | S1 / I001 | Первый runnable dashboard + scoring + detail | Демоданные дают объяснимый портфельный обзор; критический проект можно открыть | DONE |
 | S2 / I002 | CSV upload, risk/stage filters, validation/error recovery | Пользователь загружает свой файл и быстро отбирает проблемные проекты | DONE |
 | S3 | Optional AI recommendation | Не входит в финальный scope: принят `AI_USAGE_DECISION=NO_AI`, итоговая рекомендация детерминирована | DROPPED |
-| S4 / I003 | Stabilize/finalize/demo/submission preparation | Воспроизводимый deterministic продукт и фактические доказательства готовы к финальному acceptance | ACTIVE |
+| S4 / I003 | Stabilize/finalize/demo/submission preparation | Воспроизводимый deterministic продукт и фактические доказательства готовы к финальному acceptance | DONE |
 
 Allowed: `NOT_STARTED | ACTIVE | DONE | DROPPED`.
 
 ## Finalization strategy
 
-`I003` работает на `main` и не добавляет функций. Незавершённая optional-AI connection surface удаляется как не входящая в фактический финальный scope; canonical AI decision приводится к `NO_AI`. Затем выполняются clean-checkout first/subsequent run, integrated Must regressions, security/UI checks и factual submission/evidence update.
+`I003` выполнен на `main` без новых функций. Незавершённая optional-AI connection surface удалена, canonical AI decision приведён к `NO_AI`; clean-checkout first/subsequent run, integrated Must regressions, security/UI checks и factual submission/evidence update выполнены.
 
 Обязательная презентация создаётся финальным Chat review только после успешного product FINAL acceptance; до фактической генерации её нельзя отмечать как существующую.
 
