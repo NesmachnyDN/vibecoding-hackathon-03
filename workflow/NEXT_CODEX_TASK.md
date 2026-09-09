@@ -1,139 +1,109 @@
 # Next Codex Task
 
-TASK_ID: I002
-MODE: CONTINUE
-QUALITY_GATE_PROFILE: ITERATION
+TASK_ID: I003
+MODE: FINALIZE
+QUALITY_GATE_PROFILE: FINAL
 BASE_BRANCH: main
-TARGET_BRANCH: feat/i002-csv-filters
-APPROVED_BRANCH: feat/i001-core-dashboard
-SOURCE_REVIEW: I001_PASS
-CONTEXT_MODE: MINIMAL
+TARGET_BRANCH: main
+APPROVED_BRANCH: feat/i002-csv-filters
+SOURCE_REVIEW: I002_PASS
+CONTEXT_MODE: FINALIZATION
 
 ## Goal
 
-Закрыть оставшийся обязательный пользовательский поток работы с данными: добавить загрузку собственного CSV, безопасную валидацию с сохранением последнего рабочего состояния, возврат к демонстрационным данным и совместные фильтры по уровню риска и этапу. Все связанные представления должны пересчитываться без перезагрузки страницы.
+Стабилизировать и окончательно проверить интегрированное решение после закрытия Must scope, устранить только финальные несоответствия/неполные пользовательские поверхности, привести документацию и evidence к фактическому состоянию и подготовить репозиторий к финальному acceptance/submission без добавления новых функций.
 
 ## Resolved contract snapshot
 
-- Deliverable / delivery profile: сохранить `STATIC_SINGLE_FILE`; весь runtime остаётся в корневом `index.html` на vanilla HTML/CSS/JavaScript, без framework/package manager/backend/container.
-- CI contract: `CI_REQUIRED:NO`; не создавать project CI или toolchain ради этого среза.
-- AI contract: optional `USE_AI` остаётся неблокирующим; существующий `OPERATOR_SESSION_BYOK` connection surface и memory-only lifecycle сохранить без расширения. Live provider readiness в I002 не требуется, так как срез не AI-dependent. Не реализовывать AI-рекомендацию в этой задаче.
-- UI contract: RU, laptop-first 1366×768, usable ≥1024; новые controls должны быть компактными, keyboard-reachable, с ясными success/error/empty состояниями и без перегрузки dashboard.
-- Official hard gates relevant now: пользователь может использовать демоданные или загрузить CSV; фильтры минимум по уровню риска и этапу; invalid CSV не должен ломать рабочее состояние; core работает без внешнего API.
-
-Скоринг и уровни риска не изменять:
-`score = min(100, min(30, overdueDays*3) + min(15, openRisks*3) + min(50, criticalRisks*25) + completionPenalty)`;
-`completionPenalty = 10` при `<50%`, `5` при `50–69%`, иначе `0`; уровни 0–9 low, 10–24 medium, 25–49 high, 50–100 critical.
-
-CSV logical schema:
-- `Проект`
-- `Этап`
-- `Выполнение, %`
-- `Просрочка, дней`
-- `Открытые риски`
-- `Критические риски`
-- `Комментарий`
-
-CSV parser requirements:
-- UTF-8 text; tolerate UTF-8 BOM and CRLF/LF;
-- support comma and semicolon delimiters;
-- correctly handle quoted fields, escaped quotes and delimiters/newlines inside quoted values;
-- determine the delimiter by successful recognition of the required header set rather than naive character counting;
-- required headers must exist exactly once; extra columns may be ignored;
-- trim surrounding whitespace outside quoted content where safe;
-- require non-empty project/stage; comment may be empty and then render a neutral «Комментарий не указан» value;
-- numeric fields are integers; completion must be 0..100; overdue/open/critical risks must be >=0;
-- require at least one valid data row; reject the whole import on any invalid row and report row/field context without replacing the currently working dataset.
-
-State behavior:
-- successful CSV import atomically replaces the active dataset, resets filters to «Все», rebuilds stage options and selects an appropriate first/top project;
-- «Демонстрационные данные» restores the exact six-row fixture, clears import error/success state and resets filters;
-- filtering is AND-combined: risk level + exact stage;
-- table, KPI/distribution/top list and detail selection must stay consistent with the filtered set; if the selected project leaves the filtered set, select the highest-risk visible project (or first visible on tie); for an empty filtered set show a clear empty state and no stale detail from a hidden project;
-- dataset/source indicator should make clear whether demo data or imported CSV is active and how many projects are in the active dataset/visible subset.
+- Final product scope: детерминированный `STATIC_SINGLE_FILE` в корневом `index.html`; demo data + local CSV import/validation + risk/stage filters + transparent scoring/dashboard/detail/recommendation полностью являются обязательным judged path.
+- Delivery: direct-open `index.html`; без framework/package manager/backend/container и без install/build шага; чистый checkout и повторный запуск должны быть проверены точно по README.
+- CI: `CI_REQUIRED:NO`, `CI_STATUS:N/A`; не добавлять CI/toolchain в FINALIZE.
+- Language: RU для README, UI, submission и будущей презентации.
+- AI final-scope decision: optional AI-generated recommendation не реализована, live provider/browser readiness остаётся `NOT_RUN`, а Must уже закрыт. Не начинать позднюю AI-функцию. Устранить из judged UI/README незавершённую AI connection/settings поверхность и привести SPEC/EVIDENCE к финальному `AI_USAGE_DECISION=NO_AI` с детерминированной рекомендацией как итоговым baseline. Не добавлять backend/provider code.
+- Security: никакие секреты, токены, локальные файлы или их содержимое не должны попадать в Git/storage/logs/URL; CSV остаётся локальным untrusted input и выводится только safe text APIs.
+- Submission hard gates: исходный код; воспроизводимый README; рабочий demo scenario; краткое описание архитектуры; описание алгоритма риска; презентация для жюри. Факты о презентации не выдумывать: фактическую deck generation выполняет финальный Chat review после product FINAL acceptance по контракту `docs/SUBMISSION.md`.
 
 ## Context pack
 
-- `index.html`
+FINALIZE использует расширенный пакет:
 
-Do not preload SPEC/PLAN/QUALITY/DELIVERY/AI/EVIDENCE/SUBMISSION; the execution-relevant contract is copied above.
+- `index.html`
+- `README.md`
+- `docs/QUALITY.md`
+- `docs/EVIDENCE.md`
+- `docs/SUBMISSION.md`
+- `docs/SPEC.md`
+- `docs/PLAN.md`
+- `docs/DELIVERY.md`
+- `docs/AI.md`
 
 ## Owning context / invariants
 
-- `index.html` remains the only runtime artifact and owns active dataset/filter/UI state.
-- Existing pure risk scoring and deterministic recommendation logic remain the single source of truth for demo and imported rows.
-- Import is atomic: parse/validate/evaluate into a candidate dataset first; commit to active UI state only after complete success.
-- User file content is untrusted; insert values only via safe text APIs (`textContent`/created text nodes), never `innerHTML`.
-- No persistence, database or browser storage is introduced.
-
-## Expected reuse
-
-- Reuse existing `calculateRisk`, `recommendedAction`, `portfolioFacts`, rendering and project-selection logic; refactor only as needed to support mutable active datasets and filters without duplicating business rules.
-
-## Task-specific security / AI / delivery / CI / UI deltas
-
-- File input accepts CSV/text files only; no filesystem paths, uploads to servers or network transfer.
-- Bound the accepted file size to a reasonable demo-safe limit (for example 2 MiB) and surface a clear validation error when exceeded.
-- Preserve CSP and the current AI token guarantees; CSV work must not broaden `connect-src` or introduce storage/logging of token/file contents.
-- Do not start optional AI generation, Docker, backend or CI work.
+- `index.html` остаётся единственным runtime artifact.
+- Зафиксированный risk scoring contract и исходные шесть demo rows не менять.
+- FINALIZE не добавляет функций; допустимы только устранение незавершённой optional-AI поверхности, required reliability/documentation/evidence/submission fixes и demo-critical исправления.
+- Factual evidence only: не отмечать unrun check как PASS и не объявлять презентацию созданной до её реального появления.
+- Product/content baseline должен быть закоммичен до записи его SHA в submission metadata.
 
 ## In scope
 
-1. Add compact data controls: choose CSV file, import status/error, and explicit restore-demo action.
-2. Implement robust dependency-free CSV parsing/validation per the contract above.
-3. Replace the active dataset atomically on successful import and recompute scoring/dashboard/detail from the imported rows.
-4. Add risk-level and stage filters with AND semantics; stage options derive from the active dataset.
-5. Keep KPI/distribution/top/table/detail consistent with the filtered subset, including empty-result behavior.
-6. Preserve and regression-check existing demo scoring, detail, AI-unavailable behavior, accessibility and direct-open delivery.
-7. Update README only where the real demo/user flow changes; do not change the canonical direct-open launch model.
-8. After verification, update only factual changed capability/verification evidence in `docs/EVIDENCE.md`.
+1. Убедиться, что текущий `main` содержит принятые I001+I002 и рабочий `index.html`.
+2. Удалить незавершённую optional-AI connection/settings поверхность и связанный runtime-код/README текст, так как AI recommendation не реализована и late feature запрещена; сохранить детерминированную рекомендацию и core без сетевой зависимости.
+3. Привести `docs/SPEC.md`, `docs/PLAN.md`, `docs/EVIDENCE.md` и README к фактическому финальному deterministic scope; `AI_USAGE_DECISION=NO_AI`, без ложных provider claims.
+4. Выполнить полный FINAL gate из `docs/QUALITY.md` на интегрированном committed state.
+5. Из чистого или эквивалентно изолированного checkout выполнить README first-run path ровно как написано; затем закрыть/повторно открыть приложение и выполнить subsequent-run path.
+6. Прогнать полный demo-critical flow: demo baseline; scoring/KPI/distribution/top; valid CSV import; invalid CSV atomic recovery; AND filters + zero state; restore demo; critical project detail/reasons/comment/deterministic action.
+7. Повторно проверить 1366×768 и 1024×768, keyboard/focus, error/empty/success states и отсутствие demo-critical clipping.
+8. Проверить security/robustness: нет секретов/токенов; no persistence/logging/file upload/network transfer; imported CSV не достигает unsafe HTML sinks; CSP и dependency-free direct-open delivery остаются согласованными.
+9. Выполнить `git diff --check` и релевантные существующие browser/static checks без добавления toolchain ради тестов.
+10. Обновить `docs/EVIDENCE.md` точными final verification фактами и `docs/SUBMISSION.md` всеми подтверждёнными artifact/run/compliance фактами. Presentation оставить `NOT_CREATED/PENDING_CHAT_GENERATION` до фактической генерации, не выдумывать READY только ради неё.
+11. Создать accepted content baseline commit на `main`; записать его SHA как `FINAL_COMMIT_SHA`/`FINAL_CONTENT_SHA` в submission metadata, затем отдельным metadata commit завершить process state. Любое последующее product behavior изменение инвалидирует baseline.
+12. Push `main` в `origin` и подтвердить observed remote `main` SHA/parity.
 
 ## Out of scope
 
-- Optional AI-generated management recommendation / live provider integration beyond the existing connection check.
-- New scoring heuristics or changes to the six-row demo fixture.
-- Backend, Python/Node runtime, database, Docker/Compose, package manager/framework.
-- Project CI.
-- Presentation/final submission/finalization work.
-- Cosmetic redesign unrelated to the new controls/states.
+- Новая AI-рекомендация, live provider integration или provider debugging.
+- Новые product features, новые scoring heuristics, дополнительные визуализации/analytics.
+- Backend, Docker/Compose, package manager/framework, database.
+- Project CI, coverage beautification или инфраструктурные улучшения.
+- Cosmetic redesign, не связанный с финальной читаемостью/демо-дефектом.
+- Выдумывание submission/presentation evidence.
 
 ## Acceptance criteria
 
-- AC-001 → app starts on the exact six-row demo fixture; a valid CSV matching the logical schema replaces the dataset and all dependent views; invalid CSV gives a specific understandable error and leaves the previous dataset/results unchanged; restore-demo returns exactly to the original six projects.
-- AC-004 → risk and stage filters combine with AND semantics and consistently update table, KPI/distribution/top list and detail selection without reload; zero-result filtering shows an explicit empty state without stale hidden-project detail.
-- AC-002/AC-003 regression → restored demo fixture still produces scores 46/3/100/22/58/0 and portfolio facts 6 total, 3 high+critical, 2 no-overdue, distribution 2/1/1/2, top three Payment gateway / Reporting system / Mobile office in the established Russian names/order.
-- AC-005 regression → after restore-demo, selecting «Платёжный шлюз» still shows 58%, 12 days, 5 open / 2 critical, all non-zero score reasons, original comment and deterministic action.
-- AC-006 regression → CSV/filter errors and empty AI settings do not break deterministic core; no fake AI success.
-- AC-008 → import/filter controls are readable and keyboard-usable at 1366×768 and ≥1024px, with visible focus and understandable error/empty/success feedback.
-- AC-009 regression → clean checkout and subsequent run still require only direct opening of `index.html`; no install/build step added.
+- AC-001..AC-006, AC-008, AC-009 → все обязательные критерии из SPEC подтверждены integrated final browser evidence после I002.
+- AC-007 → исключён из финального claimed scope как optional AI; `NO_AI` и deterministic fallback согласованы в SPEC/EVIDENCE/UI/README, отсутствуют незавершённые или вводящие в заблуждение AI controls.
+- FINAL-DELIVERY → README first-run и subsequent-run работают из committed state без install/build/hidden shell state.
+- FINAL-SECURITY → repository/browser inspection не выявляет секретов, persistence, unsafe CSV rendering или скрытой сетевой зависимости core.
+- FINAL-UI → demo-critical flow читаем и управляем с клавиатуры на 1366×768 и 1024×768.
+- FINAL-SUBMISSION → README содержит запуск, архитектурное решение, алгоритм и демонстрационный сценарий; SUBMISSION содержит только фактические финальные refs/statuses и явно показывает, что обязательная презентация генерируется после final Chat acceptance.
+- FINAL-SYNC → final metadata commit опубликован в `origin/main`, remote SHA совпадает с локальным final process commit.
 
 ## Required checks
 
-1. Start from refreshed `main` and verify it contains accepted I001 commit/content before creating `feat/i002-csv-filters`.
-2. Direct-open committed `index.html` through the canonical `file://` path; confirm the restored/demo baseline still matches all six established scores and aggregate facts exactly.
-3. Import a valid semicolon-delimited CSV with at least three rows, including one quoted comment containing a semicolon and one empty comment. Verify row count, scores/levels, source indicator and dashboard/detail recomputation.
-4. Import a valid comma-delimited CSV whose two comma-containing header names are correctly quoted; verify the same parser path accepts it.
-5. Verify atomic failure with at least: missing required header; completion outside 0..100; non-integer risk value; oversized file. After each failure confirm the previously active dataset, filters and selected/detail state remain usable and unchanged unless the contract explicitly resets only error text.
-6. On an imported dataset containing at least one `Разработка` high/critical project and other stages/levels, apply risk + stage filters together and verify only the intersection remains; KPI/distribution/top/detail correspond to that visible subset.
-7. Force a zero-result filter combination and verify table/summary/detail do not display stale data from a filtered-out project; then clear filters and verify full active dataset returns.
-8. Restore demo data and verify exact original fixture, dynamic stage options, cleared filters and original score/portfolio regressions.
-9. Regression-check optional AI with empty config and one safe unreachable endpoint: core remains usable and token lifecycle/storage behavior from I001 is unchanged.
-10. Inspect untrusted CSV rendering path: no imported values reach `innerHTML`; no file content/token is persisted/logged; CSP and direct-open delivery remain intact.
-11. Check layout at 1366×768 and 1024×768 plus keyboard tab order through data controls, filters, AI controls and project selectors; verify no demo-critical clipping.
-12. Run `git diff --check` and any focused static/browser assertions introduced; do not add dependency/toolchain solely for tests.
-13. Update `docs/EVIDENCE.md` only with actually observed results; unrun live AI remains NOT_RUN.
-14. Commit to `feat/i002-csv-filters`, push to `origin`, and verify remote branch head SHA equals the completed local task commit SHA.
+1. Pre-run freshness gate: `EXPECTED_TASK_ID=I003 == STATE.CURRENT_TASK_ID == NEXT.TASK_ID`, local `main` fast-forwarded to `origin/main`, worktree clean до product edits.
+2. Подтвердить, что accepted I002 commit `0d7a72d653e86c9c847a9c366ea3185de2725d50` является предком текущего `main` и I002 runtime присутствует.
+3. После удаления incomplete AI surface убедиться, что в UI/README нет кнопок/статусов, обещающих AI capability; core не содержит provider fetch/token handling, если оно больше не нужно.
+4. Из clean/equivalent checkout выполнить README first-run direct-open path; проверить initial demo fixture: scores `46/3/100/22/58/0`, total=6, high+critical=3, no-overdue=2, distribution `2/1/1/2`, top-3 в установленном порядке.
+5. Проверить valid `;` CSV с quoted delimiter/newline/empty comment и valid comma CSV с quoted comma-containing headers; оба импорта пересчитывают связанные views.
+6. Проверить atomic failures: missing header, completion >100, non-integer risk, oversized file; последнее рабочее состояние не меняется.
+7. Проверить AND risk+stage filter, zero-result state, clear/restore-demo и отсутствие stale detail.
+8. После restore-demo выбрать «Платёжный шлюз» и проверить metrics, все ненулевые reasons, исходный comment и deterministic action.
+9. Выполнить subsequent-run path после закрытия/повторного открытия; состояние возвращается к deterministic demo baseline без setup/network dependency.
+10. Проверить layout/keyboard/focus при 1366×768 и 1024×768 и основные error/empty/success states.
+11. Выполнить secret/storage/network/unsafe-sink inspection и `git diff --check`; использовать только существующие lightweight browser/static проверки.
+12. Обновить factual EVIDENCE/SPEC/PLAN/README и submission facts, не помечая presentation как существующую.
+13. Создать content baseline commit, затем metadata commit с `FINAL_COMMIT_SHA`/`FINAL_CONTENT_SHA`; push `main` и проверить remote SHA parity.
+14. Если любой mandatory FINAL gate не проходит — оставить submission `NOT_READY`/`BLOCKED`, явно записать blocker и не маскировать его статусом READY.
 
 ## Stop only when
 
-- topology/history conflict cannot be safely reconciled;
-- unexpected user changes would be overwritten;
-- direct-file browser APIs needed for local CSV import are genuinely unavailable;
-- unresolved data-integrity/security issue prevents atomic safe import;
-- task conflicts with official rules or resolved contract.
-
-Optional AI/provider unavailability is not a stop condition for I002.
+- интегрированное Must behavior не удаётся стабилизировать без изменения официального контракта;
+- обнаружена security/data-integrity проблема, требующая отдельного архитектурного решения;
+- clean-checkout judged path не воспроизводится;
+- repository history/sync нельзя безопасно завершить без rewriting;
+- официальный hard gate не может быть удовлетворён в текущем контуре.
 
 ## Notes
 
-This is the remaining Must-completion slice. Keep the change focused on data import/filtering/error recovery and regressions; do not consume time on optional AI generation or final presentation work.
+Это FEATURE-FREEZE/FINALIZE работа. Не добавляй optional AI или новые judged features. После успешного push остановись; финальный Chat review применит FINAL gate по фактам и при READY сгенерирует обязательную презентацию по `docs/SUBMISSION.md`.
