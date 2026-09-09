@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https:; img-src data:; base-uri 'none'; form-action 'none'">
+  <title>Контроль проектных рисков</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --surface-muted: #f7f9fc;
+      --ink: #172033;
+      --muted: #657188;
+      --line: #dce3ed;
+      --brand: #234fa1;
+      --brand-dark: #193b7d;
+      --focus: #1769e0;
+      --low: #19734a;
+      --low-bg: #e7f6ef;
+      --medium: #956300;
+      --medium-bg: #fff4d6;
+      --high: #bb4b11;
+      --high-bg: #fff0e7;
+      --critical: #b42336;
+      --critical-bg: #fdecef;
+      --danger: #a61b2b;
+      --shadow: 0 8px 24px rgba(22, 39, 73, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--bg); }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button, input { font: inherit; }
+
+    button, input, [tabindex] { outline: none; }
+
+    button:focus-visible,
+    input:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid rgba(23, 105, 224, 0.28);
+      outline-offset: 2px;
+    }
+
+    .app-header {
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 11px clamp(20px, 3vw, 44px);
+      color: #fff;
+      background: #18366d;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .brand-title { margin: 0; font-size: 18px; line-height: 1.2; }
+    .brand-subtitle { margin: 2px 0 0; color: #bfcee9; font-size: 12px; }
+
+    .dataset-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #d9e3f5;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dataset-label::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #51d397;
+      content: "";
+    }
+
+    main {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 22px clamp(20px, 3vw, 44px) 40px;
+    }
+
+    .page-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 3px; font-size: 24px; letter-spacing: -0.02em; }
+    h2 { margin-bottom: 14px; font-size: 17px; }
+    h3 { margin-bottom: 10px; font-size: 14px; }
+    .page-heading p, .section-note { margin-bottom: 0; color: var(--muted); }
+    .updated { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .error-banner {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border: 1px solid #efadba;
+      border-radius: 8px;
+      color: var(--danger);
+      background: var(--critical-bg);
+    }
+
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .summary-panel { padding: 18px; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kpi {
+      min-height: 92px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface-muted);
+    }
+
+    .kpi-value {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--brand-dark);
+      font-size: 30px;
+      font-weight: 750;
+      line-height: 1;
+    }
+
+    .kpi-label { color: var(--muted); font-size: 12px; }
+    .kpi-alert .kpi-value { color: var(--critical); }
+
+    .analysis-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.4fr);
+      gap: 18px;
+      padding-top: 17px;
+    }
+
+    .distribution-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .distribution-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-label { display: flex; align-items: center; gap: 7px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 3px; }
+    .legend-count { color: var(--ink); font-weight: 700; }
+
+    .top-list { margin: 0; padding: 0; list-style: none; counter-reset: top; }
+    .top-list li {
+      display: grid;
+      grid-template-columns: 23px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+      counter-increment: top;
+    }
+    .top-list li:first-child { border-top: 0; padding-top: 0; }
+    .top-list li::before {
+      display: grid;
+      width: 21px;
+      height: 21px;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--brand-dark);
+      background: #e9effa;
+      content: counter(top);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .top-project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top-score { font-weight: 750; }
+
+    .ai-panel { padding: 17px 18px; }
+    .ai-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .ai-heading h2 { margin: 0; }
+
+    .status-pill, .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .status-pill { padding: 6px 9px; color: #5d687a; background: #edf1f6; }
+    .status-pill[data-state="pending"] { color: var(--brand-dark); background: #e7eefc; }
+    .status-pill[data-state="success"] { color: var(--low); background: var(--low-bg); }
+    .status-pill[data-state="error"] { color: var(--danger); background: var(--critical-bg); }
+
+    .ai-description { margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+    .ai-form { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-items: end; }
+    .ai-form .field:first-child { grid-column: 1 / -1; }
+    .field { min-width: 0; }
+    .field label { display: block; margin-bottom: 5px; color: #48546a; font-size: 11px; font-weight: 650; }
+    .field input {
+      width: 100%;
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid #bec8d7;
+      border-radius: 7px;
+      color: var(--ink);
+      background: #fff;
+    }
+    .field input:hover { border-color: #8f9db2; }
+    .field input[aria-invalid="true"] { border-color: var(--danger); background: #fff8f9; }
+
+    .button-row { display: flex; gap: 7px; }
+    .primary-button, .secondary-button {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .primary-button { border: 1px solid var(--brand); color: #fff; background: var(--brand); }
+    .primary-button:hover { background: var(--brand-dark); }
+    .secondary-button { border: 1px solid #bec8d7; color: #42506a; background: #fff; }
+    button:disabled { cursor: not-allowed; opacity: 0.48; }
+
+    .ai-message { min-height: 18px; margin: 9px 0 0; color: var(--muted); font-size: 11px; }
+    .ai-message[data-state="success"] { color: var(--low); }
+    .ai-message[data-state="error"] { color: var(--danger); }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(620px, 1.55fr) minmax(330px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .table-panel { overflow: hidden; }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px 12px;
+    }
+    .panel-header h2 { margin: 0; }
+
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 690px; }
+    th, td { padding: 11px 10px; border-top: 1px solid var(--line); text-align: left; vertical-align: middle; }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    td { font-size: 12px; }
+    th:first-child, td:first-child { padding-left: 18px; }
+    th:last-child, td:last-child { padding-right: 18px; }
+    tbody tr { border-left: 3px solid transparent; }
+    tbody tr[data-selected="true"] { border-left-color: var(--brand); background: #f4f7fd; }
+    tbody tr:hover { background: #f7f9fc; }
+    tbody tr[data-selected="true"]:hover { background: #f0f4fb; }
+
+    .project-button {
+      max-width: 260px;
+      padding: 3px 1px;
+      overflow: hidden;
+      border: 0;
+      color: var(--brand-dark);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 700;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .project-button:hover { text-decoration: underline; }
+    .number-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .risk-badge { min-width: 82px; padding: 7px 9px; }
+    .risk-low { color: var(--low); background: var(--low-bg); }
+    .risk-medium { color: var(--medium); background: var(--medium-bg); }
+    .risk-high { color: var(--high); background: var(--high-bg); }
+    .risk-critical { color: var(--critical); background: var(--critical-bg); }
+
+    .detail-panel { position: sticky; top: 16px; overflow: hidden; }
+    .detail-accent { height: 5px; background: var(--brand); }
+    .detail-content { padding: 17px 18px 18px; }
+    .detail-title-row { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+    .detail-title-row h2 { margin-bottom: 3px; font-size: 18px; }
+    .detail-stage { margin-bottom: 15px; color: var(--muted); font-size: 12px; }
+
+    .metrics-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin: 0 0 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--line);
+    }
+    .metric { padding: 9px; background: var(--surface-muted); }
+    .metric dt { margin-bottom: 3px; color: var(--muted); font-size: 10px; }
+    .metric dd { margin: 0; font-size: 14px; font-weight: 750; }
+
+    .reason-list { margin: 0 0 16px; padding: 0; list-style: none; }
+    .reason-list li { position: relative; margin-top: 6px; padding-left: 16px; color: #3f4b61; font-size: 12px; }
+    .reason-list li::before { position: absolute; left: 0; color: var(--high); content: "+"; font-weight: 800; }
+    .reason-list li.no-penalty::before { color: var(--low); content: "✓"; }
+
+    .detail-block { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .detail-block h3 { margin-bottom: 6px; color: #48546a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .detail-block p { margin-bottom: 0; font-size: 12px; }
+    .recommendation { padding: 11px 12px; border-left: 3px solid var(--brand); border-radius: 0 7px 7px 0; background: #eff4fc; }
+
+    .empty-state { padding: 30px 18px; color: var(--muted); text-align: center; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 1100px) {
+      .portfolio-grid { grid-template-columns: 1fr; }
+      .ai-form { grid-template-columns: 1.3fr 1fr 1fr; }
+      .ai-form .field:first-child { grid-column: auto; }
+      .button-row { grid-column: 1 / -1; }
+      .workspace-grid { grid-template-columns: minmax(590px, 1.4fr) minmax(320px, 0.8fr); }
+    }
+
+    @media (max-width: 900px) {
+      .workspace-grid { grid-template-columns: 1fr; }
+      .detail-panel { position: static; }
+    }
+
+    @media (max-width: 680px) {
+      .app-header, .page-heading { align-items: flex-start; flex-direction: column; }
+      .dataset-label, .updated { white-space: normal; }
+      main { padding-inline: 12px; }
+      .kpi-grid, .analysis-row, .metrics-list { grid-template-columns: 1fr; }
+      .ai-form { grid-template-columns: 1fr; }
+      .ai-form .field:first-child { grid-column: auto; }
+      .button-row { grid-column: auto; flex-wrap: wrap; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">КР</div>
+      <div>
+        <p class="brand-title">Контроль проектных рисков</p>
+        <p class="brand-subtitle">Портфель руководителя</p>
+      </div>
+    </div>
+    <div class="dataset-label">Демонстрационные данные · 6 проектов</div>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h1>Состояние портфеля</h1>
+        <p>Приоритеты рассчитаны по просрочке, открытым рискам и выполнению.</p>
+      </div>
+      <span class="updated">Данные встроены в приложение</span>
+    </div>
+
+    <div id="app-error" class="error-banner" role="alert" hidden>
+      Не удалось рассчитать демонстрационный портфель. Обновите страницу.
+    </div>
+
+    <section class="portfolio-grid" aria-label="Обзор портфеля">
+      <article class="panel summary-panel">
+        <h2>Ключевые показатели</h2>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-total">—</span>
+            <span class="kpi-label">Всего проектов</span>
+          </div>
+          <div class="kpi kpi-alert">
+            <span class="kpi-value" id="kpi-attention">—</span>
+            <span class="kpi-label">Высокий и критический риск</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-on-time">—</span>
+            <span class="kpi-label">Без просрочки</span>
+          </div>
+        </div>
+        <div class="analysis-row">
+          <div>
+            <h3>Распределение рисков</h3>
+            <ul class="distribution-list" id="distribution-list"></ul>
+          </div>
+          <div>
+            <h3>Требуют внимания в первую очередь</h3>
+            <ol class="top-list" id="top-list"></ol>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel ai-panel" aria-labelledby="ai-title">
+        <div class="ai-heading">
+          <h2 id="ai-title">Опциональное ИИ-соединение</h2>
+          <span class="status-pill" id="ai-status" data-state="idle">Не настроено</span>
+        </div>
+        <p class="ai-description">Core-функции работают автономно. Проверка выполняет прямой запрос к OpenAI-compatible <code>/models</code>; провайдер должен разрешать запросы из <code>file://</code>.</p>
+        <form class="ai-form" id="ai-form" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="ai-endpoint">Endpoint (HTTPS)</label>
+            <input id="ai-endpoint" name="endpoint" type="url" inputmode="url" placeholder="https://provider.example/v1" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="ai-model">Модель</label>
+            <input id="ai-model" name="model" type="text" placeholder="model-id" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="ai-token">Токен текущей вкладки</label>
+            <input id="ai-token" name="token" type="password" placeholder="Не сохранён" autocomplete="new-password" spellcheck="false">
+          </div>
+          <div class="button-row">
+            <button class="primary-button" id="ai-check" type="submit">Проверить соединение</button>
+            <button class="secondary-button" id="ai-clear" type="button" disabled>Удалить токен</button>
+          </div>
+        </form>
+        <p class="ai-message" id="ai-message" data-state="idle" aria-live="polite">Токен не сохраняется в браузерном хранилище и исчезнет после перезагрузки.</p>
+      </aside>
+    </section>
+
+    <section class="workspace-grid" aria-label="Проекты и выбранный проект">
+      <article class="panel table-panel">
+        <div class="panel-header">
+          <h2>Проекты</h2>
+          <span class="section-note">Нажмите на название для деталей</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption class="visually-hidden">Демонстрационные проекты и рассчитанные уровни риска</caption>
+            <thead>
+              <tr>
+                <th scope="col">Проект</th>
+                <th scope="col">Этап</th>
+                <th scope="col">Выполнение</th>
+                <th scope="col">Просрочка</th>
+                <th scope="col">Открытые риски</th>
+                <th scope="col">Риск</th>
+              </tr>
+            </thead>
+            <tbody id="project-rows"></tbody>
+          </table>
+          <div class="empty-state" id="project-empty" hidden>В портфеле пока нет проектов.</div>
+        </div>
+      </article>
+
+      <aside class="panel detail-panel" aria-labelledby="detail-title">
+        <div class="detail-accent" id="detail-accent"></div>
+        <div class="detail-content" id="detail-content"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const PROJECTS = Object.freeze([
+        Object.freeze({ id: 'mobile-office', name: 'Мобильный кабинет', stage: 'Разработка', completion: 72, overdueDays: 4, openRisks: 3, criticalRisks: 1, comment: 'Не согласован новый срок интеграционного тестирования' }),
+        Object.freeze({ id: 'digital-archive', name: 'Электронный архив', stage: 'Тестирование', completion: 91, overdueDays: 0, openRisks: 1, criticalRisks: 0, comment: 'Испытания идут по плану' }),
+        Object.freeze({ id: 'payment-gateway', name: 'Платёжный шлюз', stage: 'Разработка', completion: 58, overdueDays: 12, openRisks: 5, criticalRisks: 2, comment: 'Не получен доступ к внешнему тестовому контуру' }),
+        Object.freeze({ id: 'employee-office', name: 'Личный кабинет сотрудника', stage: 'Проектирование', completion: 45, overdueDays: 2, openRisks: 2, criticalRisks: 0, comment: 'Требуется уточнить требования подразделения кадров' }),
+        Object.freeze({ id: 'reporting-system', name: 'Система отчётности', stage: 'Внедрение', completion: 96, overdueDays: 7, openRisks: 4, criticalRisks: 1, comment: 'Обнаружена проблема производительности при формировании отчётов' }),
+        Object.freeze({ id: 'service-catalog', name: 'Каталог услуг', stage: 'Разработка', completion: 81, overdueDays: 0, openRisks: 0, criticalRisks: 0, comment: 'Работы выполняются в соответствии с планом' })
+      ]);
+
+      const LEVELS = Object.freeze({
+        low: Object.freeze({ label: 'Низкий', className: 'risk-low', color: 'var(--low)' }),
+        medium: Object.freeze({ label: 'Средний', className: 'risk-medium', color: 'var(--medium)' }),
+        high: Object.freeze({ label: 'Высокий', className: 'risk-high', color: 'var(--high)' }),
+        critical: Object.freeze({ label: 'Критический', className: 'risk-critical', color: 'var(--critical)' })
+      });
+
+      function riskLevel(score) {
+        if (score < 10) return 'low';
+        if (score < 25) return 'medium';
+        if (score < 50) return 'high';
+        return 'critical';
+      }
+
+      function calculateRisk(project) {
+        const components = Object.freeze({
+          overdue: Math.min(30, project.overdueDays * 3),
+          open: Math.min(15, project.openRisks * 3),
+          critical: Math.min(50, project.criticalRisks * 25),
+          completion: project.completion < 50 ? 10 : project.completion < 70 ? 5 : 0
+        });
+        const score = Math.min(100, components.overdue + components.open + components.critical + components.completion);
+        const reasons = [];
+        if (components.overdue) reasons.push(`Просрочка ${project.overdueDays} дн.: +${components.overdue}`);
+        if (components.open) reasons.push(`Открытые риски (${project.openRisks}): +${components.open}`);
+        if (components.critical) reasons.push(`Критические риски (${project.criticalRisks}): +${components.critical}`);
+        if (components.completion) reasons.push(`Выполнение ${project.completion}%: +${components.completion}`);
+        if (!reasons.length) reasons.push('Штрафные факторы отсутствуют');
+        return Object.freeze({ score, level: riskLevel(score), components, reasons: Object.freeze(reasons) });
+      }
+
+      function recommendedAction(project) {
+        const actions = [];
+        if (project.criticalRisks > 0) actions.push(`в течение 24 часов назначить владельца для закрытия ${project.criticalRisks} критических рисков`);
+        if (project.overdueDays > 0) actions.push(`согласовать контрольную дату и план ликвидации просрочки длительностью ${project.overdueDays} дней`);
+        if (project.criticalRisks === 0 && project.openRisks > 0) actions.push(`назначить владельцев и сроки для ${project.openRisks} открытых рисков`);
+        if (project.completion < 50) actions.push('уточнить объём работ и утвердить план достижения 50% выполнения');
+        else if (project.completion < 70 && !project.criticalRisks) actions.push('проверить реалистичность ближайшей контрольной точки');
+        if (!actions.length) return 'Сохранить текущий темп и проверить статус на следующей плановой контрольной точке.';
+        return `${actions[0][0].toUpperCase()}${actions[0].slice(1)}${actions.slice(1).map((action) => `; ${action}`).join('')}.`;
+      }
+
+      const evaluatedProjects = PROJECTS.map((project) => Object.freeze({
+        ...project,
+        risk: calculateRisk(project),
+        recommendation: recommendedAction(project)
+      }));
+
+      function portfolioFacts(projects) {
+        const distribution = { low: 0, medium: 0, high: 0, critical: 0 };
+        projects.forEach((project) => { distribution[project.risk.level] += 1; });
+        return Object.freeze({
+          total: projects.length,
+          attention: projects.filter((project) => project.risk.level === 'high' || project.risk.level === 'critical').length,
+          noOverdue: projects.filter((project) => project.overdueDays === 0).length,
+          distribution: Object.freeze(distribution),
+          top: Object.freeze([...projects].sort((a, b) => b.risk.score - a.risk.score).slice(0, 3))
+        });
+      }
+
+      function assertFixture(projects, facts) {
+        const expectedScores = [46, 3, 100, 22, 58, 0];
+        const expectedLevels = ['high', 'low', 'critical', 'medium', 'critical', 'low'];
+        const expectedTop = ['Платёжный шлюз', 'Система отчётности', 'Мобильный кабинет'];
+        const scoresMatch = projects.every((project, index) => project.risk.score === expectedScores[index] && project.risk.level === expectedLevels[index]);
+        const factsMatch = facts.total === 6 && facts.attention === 3 && facts.noOverdue === 2
+          && facts.distribution.low === 2 && facts.distribution.medium === 1
+          && facts.distribution.high === 1 && facts.distribution.critical === 2
+          && facts.top.every((project, index) => project.name === expectedTop[index]);
+        if (!scoresMatch || !factsMatch) throw new Error('Fixture contract mismatch');
+      }
+
+      function textNode(tag, className, value) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        element.textContent = value;
+        return element;
+      }
+
+      function riskBadge(project) {
+        const level = LEVELS[project.risk.level];
+        const badge = textNode('span', `risk-badge ${level.className}`, `${project.risk.score} · ${level.label}`);
+        badge.dataset.level = project.risk.level;
+        return badge;
+      }
+
+      function renderSummary(facts) {
+        document.querySelector('#kpi-total').textContent = facts.total;
+        document.querySelector('#kpi-attention').textContent = facts.attention;
+        document.querySelector('#kpi-on-time').textContent = facts.noOverdue;
+
+        const distributionList = document.querySelector('#distribution-list');
+        distributionList.replaceChildren();
+        ['low', 'medium', 'high', 'critical'].forEach((key) => {
+          const item = textNode('li', 'distribution-item', '');
+          const label = textNode('span', 'legend-label', '');
+          const dot = textNode('span', `legend-dot ${LEVELS[key].className}`, '');
+          label.append(dot, document.createTextNode(LEVELS[key].label));
+          item.append(label, textNode('span', 'legend-count', facts.distribution[key]));
+          distributionList.append(item);
+        });
+
+        const topList = document.querySelector('#top-list');
+        topList.replaceChildren();
+        facts.top.forEach((project) => {
+          const item = document.createElement('li');
+          item.append(textNode('span', 'top-project-name', project.name), textNode('span', 'top-score', project.risk.score));
+          topList.append(item);
+        });
+      }
+
+      function renderTable(projects, selectedId) {
+        const rows = document.querySelector('#project-rows');
+        const empty = document.querySelector('#project-empty');
+        rows.replaceChildren();
+        empty.hidden = projects.length !== 0;
+
+        projects.forEach((project) => {
+          const row = document.createElement('tr');
+          row.dataset.projectId = project.id;
+          row.dataset.selected = String(project.id === selectedId);
+
+          const nameCell = document.createElement('td');
+          const selectButton = textNode('button', 'project-button', project.name);
+          selectButton.type = 'button';
+          selectButton.dataset.selectProject = project.id;
+          selectButton.setAttribute('aria-pressed', String(project.id === selectedId));
+          selectButton.setAttribute('aria-label', `Открыть карточку проекта «${project.name}»`);
+          nameCell.append(selectButton);
+
+          row.append(
+            nameCell,
+            textNode('td', '', project.stage),
+            textNode('td', 'number-cell', `${project.completion}%`),
+            textNode('td', 'number-cell', `${project.overdueDays} дн.`),
+            textNode('td', 'number-cell', `${project.openRisks} / ${project.criticalRisks} крит.`)
+          );
+          const riskCell = document.createElement('td');
+          riskCell.append(riskBadge(project));
+          row.append(riskCell);
+          rows.append(row);
+        });
+      }
+
+      function metric(term, value) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'metric';
+        wrapper.append(textNode('dt', '', term), textNode('dd', '', value));
+        return wrapper;
+      }
+
+      function renderDetail(project) {
+        const content = document.querySelector('#detail-content');
+        const accent = document.querySelector('#detail-accent');
+        content.replaceChildren();
+        accent.style.background = LEVELS[project.risk.level].color;
+
+        const titleRow = textNode('div', 'detail-title-row', '');
+        const title = textNode('h2', '', project.name);
+        title.id = 'detail-title';
+        titleRow.append(title, riskBadge(project));
+
+        const metrics = document.createElement('dl');
+        metrics.className = 'metrics-list';
+        metrics.append(
+          metric('Выполнение', `${project.completion}%`),
+          metric('Просрочка', `${project.overdueDays} дн.`),
+          metric('Открытые риски', project.openRisks),
+          metric('Критические', project.criticalRisks),
+          metric('Баллы риска', `${project.risk.score} / 100`),
+          metric('Уровень', LEVELS[project.risk.level].label)
+        );
+
+        const reasonsTitle = textNode('h3', '', 'Почему такой балл');
+        const reasons = document.createElement('ul');
+        reasons.className = 'reason-list';
+        reasons.dataset.testid = 'risk-reasons';
+        project.risk.reasons.forEach((reason) => {
+          const item = textNode('li', reason.startsWith('Штрафные') ? 'no-penalty' : '', reason);
+          reasons.append(item);
+        });
+
+        const commentBlock = textNode('div', 'detail-block', '');
+        commentBlock.append(textNode('h3', '', 'Исходный комментарий'), textNode('p', '', project.comment));
+
+        const actionBlock = textNode('div', 'detail-block', '');
+        const action = textNode('p', 'recommendation', project.recommendation);
+        action.dataset.testid = 'recommendation';
+        actionBlock.append(textNode('h3', '', 'Рекомендуемое действие'), action);
+
+        content.append(titleRow, textNode('p', 'detail-stage', `Этап: ${project.stage}`), metrics, reasonsTitle, reasons, commentBlock, actionBlock);
+      }
+
+      function setupProjectSelection(projects) {
+        document.querySelector('#project-rows').addEventListener('click', (event) => {
+          const button = event.target.closest('[data-select-project]');
+          if (!button) return;
+          const selected = projects.find((project) => project.id === button.dataset.selectProject);
+          if (!selected) return;
+          renderTable(projects, selected.id);
+          renderDetail(selected);
+          document.querySelector(`[data-select-project="${selected.id}"]`).focus();
+        });
+      }
+
+      function setupAiConnection() {
+        const form = document.querySelector('#ai-form');
+        const endpointInput = document.querySelector('#ai-endpoint');
+        const modelInput = document.querySelector('#ai-model');
+        const tokenInput = document.querySelector('#ai-token');
+        const checkButton = document.querySelector('#ai-check');
+        const clearButton = document.querySelector('#ai-clear');
+        const status = document.querySelector('#ai-status');
+        const message = document.querySelector('#ai-message');
+        let sessionToken = '';
+
+        function setStatus(state, label, detail) {
+          status.dataset.state = state;
+          status.textContent = label;
+          message.dataset.state = state;
+          message.textContent = detail;
+        }
+
+        function setBusy(isBusy) {
+          checkButton.disabled = isBusy;
+          endpointInput.disabled = isBusy;
+          modelInput.disabled = isBusy;
+          tokenInput.disabled = isBusy;
+          checkButton.textContent = isBusy ? 'Проверяем…' : 'Проверить соединение';
+          clearButton.disabled = isBusy || !sessionToken;
+        }
+
+        function markValidity(input, invalid) {
+          input.setAttribute('aria-invalid', String(invalid));
+        }
+
+        clearButton.addEventListener('click', () => {
+          sessionToken = '';
+          tokenInput.value = '';
+          tokenInput.placeholder = 'Не сохранён';
+          clearButton.disabled = true;
+          setStatus('idle', 'Не настроено', 'Токен удалён из памяти вкладки. Core-функции продолжают работать.');
+          tokenInput.focus();
+        });
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const endpointValue = endpointInput.value.trim();
+          const model = modelInput.value.trim();
+          const enteredToken = tokenInput.value;
+          const token = enteredToken || sessionToken;
+
+          markValidity(endpointInput, !endpointValue);
+          markValidity(modelInput, !model);
+          markValidity(tokenInput, !token);
+          if (!endpointValue || !model || !token) {
+            setStatus('error', 'Не настроено', 'Заполните endpoint, модель и токен. Портфель доступен без ИИ.');
+            return;
+          }
+
+          let endpoint;
+          try {
+            endpoint = new URL(endpointValue);
+            if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) throw new Error('Invalid endpoint');
+          } catch (_error) {
+            markValidity(endpointInput, true);
+            setStatus('error', 'Ошибка настройки', 'Укажите базовый HTTPS endpoint без логина, query-параметров и фрагмента.');
+            return;
+          }
+
+          markValidity(endpointInput, false);
+          markValidity(modelInput, false);
+          markValidity(tokenInput, false);
+          if (enteredToken) {
+            sessionToken = enteredToken;
+            tokenInput.value = '';
+            tokenInput.placeholder = 'Сохранён в памяти вкладки';
+          }
+
+          const basePath = endpoint.pathname.replace(/\/+$/, '');
+          endpoint.pathname = `${basePath}/models`;
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+          setBusy(true);
+          setStatus('pending', 'Проверка…', 'Выполняется прямой запрос из браузера. Core-функции не затронуты.');
+
+          try {
+            const response = await fetch(endpoint.href, {
+              method: 'GET',
+              mode: 'cors',
+              cache: 'no-store',
+              credentials: 'omit',
+              referrerPolicy: 'no-referrer',
+              headers: { Accept: 'application/json', Authorization: `Bearer ${sessionToken}` },
+              signal: controller.signal
+            });
+            if (!response.ok) {
+              setStatus('error', 'Соединение отклонено', `Провайдер вернул HTTP ${response.status}. Проверьте endpoint, токен и CORS.`);
+              return;
+            }
+            let payload;
+            try { payload = await response.json(); } catch (_error) {
+              setStatus('error', 'Некорректный ответ', 'Провайдер ответил, но не вернул JSON со списком моделей.');
+              return;
+            }
+            const availableModels = Array.isArray(payload && payload.data) ? payload.data.map((item) => item && item.id).filter(Boolean) : [];
+            if (!availableModels.includes(model)) {
+              setStatus('error', 'Модель недоступна', 'Endpoint и токен приняты, но указанная модель отсутствует в ответе /models.');
+              return;
+            }
+            setStatus('success', 'Соединение доступно', 'Endpoint, токен и модель подтверждены. Оценка рисков остаётся детерминированной.');
+          } catch (error) {
+            const detail = error && error.name === 'AbortError'
+              ? 'Проверка превысила 8 секунд. Проверьте доступность endpoint.'
+              : 'Прямой запрос не выполнен. Проверьте endpoint, сеть и разрешение CORS для file://.';
+            setStatus('error', 'Соединение недоступно', detail);
+          } finally {
+            window.clearTimeout(timeoutId);
+            setBusy(false);
+          }
+        });
+      }
+
+      try {
+        const facts = portfolioFacts(evaluatedProjects);
+        assertFixture(evaluatedProjects, facts);
+        const initialProject = facts.top[0] || evaluatedProjects[0];
+        renderSummary(facts);
+        renderTable(evaluatedProjects, initialProject && initialProject.id);
+        if (initialProject) renderDetail(initialProject);
+        setupProjectSelection(evaluatedProjects);
+        setupAiConnection();
+      } catch (_error) {
+        document.querySelector('#app-error').hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>
