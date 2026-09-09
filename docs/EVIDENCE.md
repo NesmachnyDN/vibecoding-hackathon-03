@@ -18,6 +18,7 @@ Keep only factual current implementation/verification facts. Planned capability 
 | Карточка + deterministic action | Выбор «Платёжный шлюз» показывает 58%, 12 дней, 5/2 риска, четыре составляющие балла, исходный комментарий и действие с владельцем/сроком | WORKING |
 | Ошибки и восстановление | Missing header, completion >100, non-integer risk и файл 2 MiB + 1 byte дают понятные ошибки, не меняют последнее рабочее состояние; success/error/zero states проверены | WORKING |
 | AI | Не входит в финальный scope; controls/runtime/provider claims удалены, детерминированная рекомендация сохранена | WORKING |
+| Презентация | Финальным Chat review сформирован 5-слайдовый 16:9 deck на русском: `Контроль_проектных_рисков_презентация.pptx`; содержание основано на SPEC/EVIDENCE и фактических метриках продукта | WORKING |
 
 Allowed status: `WORKING | PARTIAL | NOT_VERIFIED | NOT_STARTED`.
 
@@ -31,6 +32,7 @@ Allowed status: `WORKING | PARTIAL | NOT_VERIFIED | NOT_STARTED`.
 | Negative/edge | Те же прогоны: missing header, completion `101`, risk `1.5`, файл `2097153` bytes | PASS — каждая ошибка контекстна и не меняет dataset/filters/selection/detail |
 | Layout/keyboard | Chrome 153 DevTools emulation и screenshots 1366×768/1024×768; Tab: CSV → restore → risk → stage → project; computed focus outline 3px | PASS — page overflow/control clipping отсутствуют; на 1024 таблица и карточка складываются вертикально, столбец риска виден |
 | Static/security | inline-script parse через `node -e`; `rg` по network/persistence/logging/unsafe HTML sinks/AI controls; high-confidence secret scan; `git diff --check`; clean-tree/SHA assertions | PASS — CSP запрещает сеть по `default-src 'none'`; runtime requests/exceptions = 0; импорт выводится через text APIs; secret patterns не найдены |
+| Presentation | PptxGenJS generation + slide render + `slides_test.py` | PASS — 5 slides, 16:9, RU, overflow test clean; основные слайды не содержат внутренних SHA/test counts/CI команд |
 
 ## AI
 
@@ -54,10 +56,9 @@ Allowed status: `WORKING | PARTIAL | NOT_VERIFIED | NOT_STARTED`.
 ## Repository sync
 
 - Mode/primary/mirror: GITHUB_PRIMARY / `NesmachnyDN/vibecoding-hackathon-03` / no mirror.
-- Content baseline parity: после push/fetch `main == origin/main == f8645473c7c61b00e4ada0bcc9027d900a708db9`.
-- Final process metadata parity: проверяется после metadata commit и фиксируется в I003 handoff, поскольку commit не может содержать собственный SHA.
+- Content baseline parity: после push/fetch `main == origin/main == f8645473c7c61b00e4ada0bcc9027d900a708db9` на момент фиксации product baseline.
+- Final process metadata/readiness commit публикуется в официальный `main`; его remote head parity проверяется финальным Chat review после записи, чтобы не пытаться хранить SHA самого коммита внутри него.
 
 ## Known limitations
 
-- Обязательная презентация ещё не создана; её генерация остаётся за финальным Chat review после product FINAL acceptance.
 - Официальный submission mechanism не указан в доступном контракте.
