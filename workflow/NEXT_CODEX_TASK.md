@@ -101,7 +101,7 @@ Do not preload SPEC/PLAN/QUALITY/DELIVERY/AI/EVIDENCE/SUBMISSION; the execution-
 
 - AC-001 → app starts on the exact six-row demo fixture; a valid CSV matching the logical schema replaces the dataset and all dependent views; invalid CSV gives a specific understandable error and leaves the previous dataset/results unchanged; restore-demo returns exactly to the original six projects.
 - AC-004 → risk and stage filters combine with AND semantics and consistently update table, KPI/distribution/top list and detail selection without reload; zero-result filtering shows an explicit empty state without stale hidden-project detail.
-- AC-002/AC-003 regression → restored demo fixture still produces scores 46/3/100/22/58/0 and portfolio facts 6 total, 3 high+critical, 2 no-overdue, distribution 2/1/1/2, top three in the established Russian names/order.
+- AC-002/AC-003 regression → restored demo fixture still produces scores 46/3/100/22/58/0 and portfolio facts 6 total, 3 high+critical, 2 no-overdue, distribution 2/1/1/2, top three Payment gateway / Reporting system / Mobile office in the established Russian names/order.
 - AC-005 regression → after restore-demo, selecting «Платёжный шлюз» still shows 58%, 12 days, 5 open / 2 critical, all non-zero score reasons, original comment and deterministic action.
 - AC-006 regression → CSV/filter errors and empty AI settings do not break deterministic core; no fake AI success.
 - AC-008 → import/filter controls are readable and keyboard-usable at 1366×768 and ≥1024px, with visible focus and understandable error/empty/success feedback.

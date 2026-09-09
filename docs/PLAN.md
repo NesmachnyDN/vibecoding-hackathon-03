@@ -23,8 +23,8 @@ Current phase/timebox is owned by `workflow/STATE.md`; абсолютный де
 
 | Slice | Goal | User-visible result | Status |
 |---|---|---|---|
-| S1 / I001 | Первый runnable dashboard + scoring + detail + ранний optional-AI readiness surface | Демоданные сразу дают объяснимый портфельный обзор; критический проект можно открыть; AI connection state не блокирует core | ACTIVE |
-| S2 | CSV upload, risk/stage filters, validation/error recovery | Пользователь загружает свой файл и быстро отбирает проблемные проекты | NOT_STARTED |
+| S1 / I001 | Первый runnable dashboard + scoring + detail + ранний optional-AI readiness surface | Демоданные сразу дают объяснимый портфельный обзор; критический проект можно открыть; AI connection state не блокирует core | DONE |
+| S2 / I002 | CSV upload, risk/stage filters, validation/error recovery | Пользователь загружает свой файл и быстро отбирает проблемные проекты | ACTIVE |
 | S3 | Optional AI recommendation only if verified; otherwise deterministic polish | Дополнительная AI-рекомендация либо уверенный fallback без провайдера | NOT_STARTED |
 | S4 | Stabilize/finalize/demo/presentation | Воспроизводимый запуск, доказательства и убедительный сценарий для жюри | NOT_STARTED |
 
@@ -32,9 +32,9 @@ Allowed: `NOT_STARTED | ACTIVE | DONE | DROPPED`.
 
 ## First runnable slice
 
-`I001` создаёт self-contained `index.html`, фиксированный алгоритм риска, демоданные, KPI/распределение/top проблемных проектов, таблицу и карточку проекта с детерминированным действием.
+`I001` завершён: self-contained `index.html` реализует фиксированный алгоритм риска, демоданные, KPI/распределение/top проблемных проектов, таблицу и карточку проекта с детерминированным действием. Optional AI connection surface сохраняет deterministic core; live provider readiness остаётся NOT_RUN и не считается PASS.
 
-Так как optional AI выбран как дополнительная ценность, I001 первым делом выполняет bounded readiness decision: если операторские endpoint/model/token безопасно доступны — проверить exact browser path; если недоступны — зафиксировать `NOT_RUN` без попытки угадать PASS и продолжить deterministic S1. На диагностику провайдера — не более 10 минут. Ошибка optional AI не является основанием добавлять backend и не блокирует Must.
+`I002` закрывает оставшийся Must scope по пользовательским данным: атомарный CSV import, validation/error recovery, возврат к демоданным и совместные risk/stage filters. После успешного I002 следующий review должен оценить, закрыты ли все Must/hard gates и пора ли переходить к стабилизации/finalize вместо автоматического добавления optional AI.
 
 ## Freeze rule
 
