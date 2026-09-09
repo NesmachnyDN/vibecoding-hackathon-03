@@ -1,136 +1,175 @@
 # Product Specification
 
-Status: `NOT_STARTED`
+Status: `READY_FOR_IMPLEMENTATION`
 
 ## Task and user
 
-- Official task: TODO
-- Primary user: TODO
-- Problem: TODO
-- Observable outcome: TODO
+- Official task: разработать небольшой прототип приложения «Контроль проектных рисков» для загрузки проектных данных, автоматической оценки состояния и управленческого представления результатов.
+- Primary user: руководитель проекта / руководитель портфеля проектов.
+- Problem: информация о сроках, рисках и комментариях разрознена; сложно быстро определить, какие проекты требуют внимания и какие действия приоритетны.
+- Observable outcome: за несколько секунд пользователь видит состояние портфеля, наиболее проблемные проекты, объяснимую оценку риска и дальнейшие действия.
 
 ## Demo-critical happy path
 
-1. TODO
-2. TODO
-3. TODO
+1. Открыть приложение и демонстрационный набор данных.
+2. Увидеть автоматическую классификацию, KPI портфеля и распределение по уровням риска.
+3. Загрузить CSV и получить пересчитанное представление без перезапуска приложения.
+4. Отфильтровать проблемные проекты по уровню риска и этапу.
+5. Открыть критический проект и увидеть показатели, причины оценки, комментарий и детерминированную рекомендацию.
+6. При доступном совместимом API — получить дополнительную ИИ-рекомендацию; при недоступности API основной поток остаётся рабочим и показывает понятный статус.
 
 ## Scope
 
 ### Must
-- TODO
+- Демонстрационный набор данных и загрузка CSV заданной структуры.
+- Табличный список проектов.
+- Детерминированный интегральный уровень риска: низкий / средний / высокий / критический.
+- Видимое и воспроизводимое объяснение причин оценки.
+- Панель руководителя: всего проектов, высокий+критический риск, без просрочки, наиболее проблемные проекты, распределение по уровням риска.
+- Фильтры минимум по уровню риска и этапу.
+- Карточка проекта: показатели, причины, исходный комментарий, алгоритмическая рекомендация дальнейших действий.
+- Современный аккуратный интерфейс для ноутбука и демонстрации жюри.
+- Основная функциональность полностью работает без внешнего ИИ/API.
+- README с воспроизводимым запуском на другом компьютере.
 
 ### Should
-- TODO
+- Понятная обработка некорректного CSV/пустых данных без падения интерфейса.
+- Стабильная сортировка наиболее проблемных проектов по интегральному баллу.
+- Хорошая визуальная иерархия и явное выделение высоких/критических состояний.
 
 ### Could
-- TODO
+- Дополнительная управленческая рекомендация через совместимый OpenAI-compatible API.
+- Дополнительные синтетические тестовые строки, если они улучшают демонстрацию.
 
 ### Won't
-- TODO
+- Серверная БД, многопользовательская авторизация, фоновые процессы, постоянное хранение данных.
+- Backend только ради хранения API-токена.
+- Docker/Compose без отдельной объективной необходимости.
+- Обязательная зависимость MVP от внешнего ИИ.
+
+## Risk scoring contract
+
+`score = min(100, overdue + open + critical + completion)`:
+
+- `overdue = min(30, overdue_days * 3)`;
+- `open = min(15, open_risks * 3)`;
+- `critical = min(50, critical_risks * 25)`;
+- `completion = 10`, если completion `<50`; `5`, если `50–69`; иначе `0`.
+
+Risk level:
+
+- `LOW`: 0–9;
+- `MEDIUM`: 10–24;
+- `HIGH`: 25–49;
+- `CRITICAL`: 50–100.
+
+Каждый ненулевой компонент должен формировать понятную пользователю причину. Алгоритм не использует скрытых/случайных эвристик.
+
+Expected fixture results for the six supplied projects:
+
+| Проект | Балл | Уровень |
+|---|---:|---|
+| Мобильный кабинет | 46 | высокий |
+| Электронный архив | 3 | низкий |
+| Платёжный шлюз | 100 | критический |
+| Личный кабинет сотрудника | 22 | средний |
+| Система отчётности | 58 | критический |
+| Каталог услуг | 0 | низкий |
 
 ## Acceptance criteria
 
 | ID | Observable criterion | Verification |
 |---|---|---|
-| AC-001 | TODO | TODO |
+| AC-001 | Демоданные загружаются сразу; корректный CSV той же схемы заменяет набор, а некорректный файл даёт понятную ошибку без потери рабочего состояния | Browser scenario with valid + invalid fixture |
+| AC-002 | Для каждого проекта рассчитываются балл/уровень по зафиксированным правилам и показываются причины | Compare six supplied fixture values with scoring contract |
+| AC-003 | Панель показывает total, high+critical, без просрочки, top проблемных и распределение уровней | Six-row fixture: total=6, high+critical=3, no-overdue=2, distribution 2/1/1/2 |
+| AC-004 | Фильтры риска и этапа совместно ограничивают таблицу и связанные представления без перезагрузки | Browser filter scenarios |
+| AC-005 | Карточка выбранного проекта показывает показатели, причины, комментарий и детерминированное действие | Select «Платёжный шлюз» and inspect detail |
+| AC-006 | Без API-ключа/при ошибке API все Must-функции работают, а ИИ-секция сообщает о недоступности без fake success | Run without credentials / forced failed connection |
+| AC-007 | При доступном совместимом API оператор может получить дополнительную краткую рекомендацию; токен не хранится в source/storage/URL/logs и теряется при reload/close | Live browser preflight when credential available + storage inspection |
+| AC-008 | Основной экран понятен на ноутбуке, проблемные проекты визуально выделены, критические действия и состояния читаемы | Manual review at target laptop viewport |
+| AC-009 | Чистый checkout запускается открытием `index.html` без установки project dependencies; повторный запуск не требует setup | Execute README first/subsequent-run paths |
 
 ## Official constraints
 
-- Required/forbidden technologies: TODO / UNKNOWN
-- Submission/hard gates: TODO / UNKNOWN
-- Data/security restrictions: TODO / UNKNOWN
-- Event deadline/duration evidence: TODO / UNKNOWN
+- Required/forbidden technologies: конкретный стек не задан; архитектуру и способ запуска разработчик выбирает самостоятельно.
+- Submission/hard gates: исходный код; README; работающий демонстрационный сценарий; краткое описание архитектурного решения; описание алгоритма оценки; презентация для жюри.
+- Data/security restrictions: внешние API-ключи/токены не хранятся в репозитории; отсутствие/ошибка внешнего API не препятствует основной демонстрации.
+- Event deadline/duration evidence: UNKNOWN; абсолютное время не предоставлено и не является блокером.
 
 ## Deliverable language
 
-- DELIVERABLE_LANGUAGE: TODO: RU / EN
-- LANGUAGE_DECISION_SOURCE: TODO: DEFAULT_RU / OFFICIAL_RULES / TASK_REQUIREMENT
-- LANGUAGE_EVIDENCE: TODO
-
-Rule: explicit official/task requirement overrides; otherwise RU.
+- DELIVERABLE_LANGUAGE: RU
+- LANGUAGE_DECISION_SOURCE: DEFAULT_RU
+- LANGUAGE_EVIDENCE: в официальном задании нет требования английского языка.
 
 ## Execution environment preflight
 
-Record only material facts; UNKNOWN is valid when non-blocking. Never store secret values.
-
 | Factor | State / evidence |
 |---|---|
-| Browser/OS/runtime constraints | UNKNOWN |
-| Docker/Compose | UNKNOWN |
-| Internet/registries | UNKNOWN |
-| Official repository/CI capability | GITHUB / UNKNOWN |
-| External/internal API reachability | UNKNOWN |
-| Direct browser API viability (provider policy/CORS/origin) | UNKNOWN / N/A |
-| Network route for external APIs (direct/TUN/env proxy/internal) | UNKNOWN |
-| Proxy/VPN/runtime transport compatibility | UNKNOWN |
-| Data-transfer restrictions | UNKNOWN |
-| Required credential/service presence | UNKNOWN |
+| Browser/OS/runtime constraints | Must-path требует только современный desktop browser; конкретная event-машина не preflighted, non-blocking |
+| Docker/Compose | N/A для выбранного STATIC_SINGLE_FILE; task не требует Docker |
+| Internet/registries | N/A для Must; интернет нужен только опциональному AI |
+| Official repository/CI capability | GitHub repository write access confirmed; project CI не требуется по принятому контракту |
+| External/internal API reachability | NOT_RUN; опциональный AI |
+| Direct browser API viability (provider policy/CORS/origin) | NOT_RUN; проверяется ранним bounded gate при наличии операторских параметров |
+| Network route for external APIs (direct/TUN/env proxy/internal) | UNKNOWN; уточняется только для опционального AI |
+| Proxy/VPN/runtime transport compatibility | UNKNOWN; Must не зависит от внешней сети |
+| Data-transfer restrictions | В задании запрета не указано; для AI до отдельного разрешения использовать только синтетические/демо-данные |
+| Required credential/service presence | AI credential NOT_PROVIDED / non-blocking |
 
-ENVIRONMENT_BLOCKERS: none / TODO
+ENVIRONMENT_BLOCKERS: none
 
 ## AI decision
 
-Resolve using `docs/AI.md` before final stack/delivery choice.
-
-- AI_USAGE_DECISION: TODO: USE_AI / NO_AI / PROHIBITED / BLOCKED
-- Deterministic baseline: TODO
-- AI_USE_CASE: TODO / N/A
-- AI_VALUE_OVER_DETERMINISTIC: TODO / N/A
-- AI_EXECUTION_CONTOUR: TODO / N/A
-- AI_PROVIDER_PROFILE: TODO / N/A
-- AI_REUSE_POLICY/SOURCE: TODO / N/A
-- AI_CREDENTIAL_MODE: TODO: NONE / OPERATOR_SESSION_BYOK / SERVER_SIDE_SECRET / OFFICIAL_BROWSER_MECHANISM / INTERNAL_ENDPOINT_AUTH / N/A
-- AI_SECRET_HANDLING: TODO / N/A
-- AI_OUTPUT_VALIDATION: TODO / N/A
-- AI_EVALUATION/FALLBACK: TODO / N/A
-- AI_PROVIDER_READINESS: TODO: PASS / DEGRADED / FAIL / NOT_RUN / N/A
-- AI_BROWSER_DIRECT_READINESS: TODO: PASS / FAIL / NOT_RUN / N/A
-- AI_NETWORK_PATH: TODO: DIRECT / SYSTEM_TUNNEL / ENV_PROXY / INTERNAL / UNKNOWN / N/A
-- AI_MODEL_STATUS: TODO: CURRENT / REPLACED / UNKNOWN / N/A
-- AI_PREFLIGHT_EVIDENCE: TODO / N/A
-- AI_PROVIDER_CONTINGENCY: TODO / N/A
-- AI_PROVIDER_DEBUG_BUDGET_MIN: TODO / N/A
-
-Rule for `USE_AI`: configured endpoint/key/model is not readiness. Prefer a minimal live inference preflight through the same runtime/client/network path as the application. If the secret cannot be used during intake, mark `NOT_RUN` and make provider viability the first gate of the first AI-dependent Codex task. AI-mandatory + no compliant live path must surface early as a blocker; optional AI must have a useful contingency/fallback.
-
-Credential presence alone is not a backend requirement. If the Must scope otherwise fits a browser-only artifact, evaluate `OPERATOR_SESSION_BYOK` or an official browser mechanism before selecting `LOCAL_APPLICATION`. Browser-direct AI requires explicit policy/CORS/origin/data-transfer PASS from the exact intended browser delivery path. Shared/long-lived hidden secrets, browser-policy/CORS failure or another genuine server responsibility justify backend promotion.
+- AI_USAGE_DECISION: USE_AI (optional enhancement; not a Must dependency)
+- Deterministic baseline: прозрачный risk score + правила формирования дальнейших действий полностью закрывают обязательную функциональность.
+- AI_USE_CASE: краткая управленческая формулировка по показателям выбранного проекта и его комментарию.
+- AI_VALUE_OVER_DETERMINISTIC: более естественная суммаризация контекста для жюри/руководителя; не используется для расчёта уровня риска.
+- AI_EXECUTION_CONTOUR: browser-direct OpenAI-compatible API when verified; otherwise deterministic fallback.
+- AI_PROVIDER_PROFILE: operator-configurable compatible endpoint/model; provider/model не фиксируются без live verification.
+- AI_REUSE_POLICY/SOURCE: no product-code reuse planned.
+- AI_CREDENTIAL_MODE: OPERATOR_SESSION_BYOK
+- AI_SECRET_HANDLING: masked input, page-memory only; no source/config/localStorage/IndexedDB/cookies/URL/logging/echo; re-entry after reload/close.
+- AI_OUTPUT_VALIDATION: plain text only, bounded length, displayed as optional AI output; never executable; clear error/unavailable state.
+- AI_EVALUATION/FALLBACK: representative synthetic projects; on any provider failure keep deterministic recommendation and show unavailable/degraded status.
+- AI_PROVIDER_READINESS: NOT_RUN
+- AI_BROWSER_DIRECT_READINESS: NOT_RUN
+- AI_NETWORK_PATH: UNKNOWN
+- AI_MODEL_STATUS: UNKNOWN
+- AI_PREFLIGHT_EVIDENCE: live credential/path unavailable during intake; no PASS claim.
+- AI_PROVIDER_CONTINGENCY: deterministic recommendation; do not promote to backend solely to rescue optional AI.
+- AI_PROVIDER_DEBUG_BUDGET_MIN: 10
 
 ## Stack and delivery
 
-Resolve jointly after environment + AI decision.
-
-- STACK_DECISION: TODO
-- EXECUTABLE_ARTIFACT: TODO: YES / NO
-- DELIVERY_PROFILE: TODO: STATIC_SINGLE_FILE / LOCAL_APPLICATION / CONTAINERIZED / TASK_OVERRIDE / N/A
-- DELIVERY_RATIONALE: TODO
-- STATIC_BROWSER_API_EVIDENCE: TODO: PASS summary / FAIL reason / NOT_RUN / N/A
-- Simpler profile rejected because: TODO / N/A
-- COMMAND_FACADE: TODO: DIRECT_OPEN / DIRECT_COMMAND / MAKE / N/A
-- Canonical build/open/start/stop/test: TODO / N/A
-- Required config names/ports/state: TODO / N/A
-
-For `LOCAL_APPLICATION`, “AI needs a token” is not sufficient `DELIVERY_RATIONALE` by itself. Name the real server responsibility or failed/forbidden browser condition. For `STATIC_SINGLE_FILE` + `OPERATOR_SESSION_BYOK`, document that the token is operator-supplied, memory-only, non-persistent and re-entered after reload/close; do not store its value anywhere.
+- STACK_DECISION: self-contained vanilla HTML/CSS/JavaScript using browser File API and DOM; no framework/package/runtime dependency.
+- EXECUTABLE_ARTIFACT: YES
+- DELIVERY_PROFILE: STATIC_SINGLE_FILE
+- DELIVERY_RATIONALE: complete Must scope (CSV parsing, deterministic scoring, dashboard, filtering, detail) has no real server/database/background responsibility and can run entirely in-browser. Optional AI is not allowed to force backend complexity.
+- STATIC_BROWSER_API_EVIDENCE: NOT_RUN for optional AI only; Must browser functionality is network-independent.
+- Simpler profile rejected because: N/A; simplest compliant profile selected.
+- COMMAND_FACADE: DIRECT_OPEN
+- Canonical build/open/start/stop/test: build=N/A; open=`index.html`; start=open in browser; stop=close tab; verification=browser scenarios from AC.
+- Required config names/ports/state: none for Must; optional AI fields `endpoint`, `model`, `token`; no fixed port.
 
 ## Project CI
 
-- CI_REQUIRED: TODO: YES / NO / N/A
-- CI_PLATFORM: TODO: GITHUB_ACTIONS / GITLAB_CI / VWORKS / OTHER / N/A
-- CI_CONFIG_PATH: TODO / N/A
-- CI_REQUIRED_CHECKS: TODO / N/A
-- Decision evidence/reason: TODO
-
-Official primary selects CI platform; mirror convenience never changes ownership.
+- CI_REQUIRED: NO
+- CI_PLATFORM: N/A
+- CI_CONFIG_PATH: N/A
+- CI_REQUIRED_CHECKS: N/A
+- Decision evidence/reason: official task does not require CI; chosen artifact has no build/package dependency and adding a CI toolchain solely for a single static file would increase complexity without material demo/reproducibility value. Verification remains explicit and local.
 
 ## UI contract
 
-- UI_REQUIRED: TODO: YES / NO
-- Primary surface/user task: TODO / N/A
-- Demo viewport/device: TODO / N/A
-- Visual direction/design system: TODO / N/A
-- Required states/accessibility/responsive expectations: TODO / N/A
-- AI settings UX when applicable: TODO / N/A; for `OPERATOR_SESSION_BYOK`, masked credential input + explicit connection check/status, no secret echo/persistence.
+- UI_REQUIRED: YES
+- Primary surface/user task: management dashboard for immediate portfolio triage, then project detail.
+- Demo viewport/device: laptop, target 1366×768; must remain usable at ≥1024 px width.
+- Visual direction/design system: restrained professional light dashboard; clear hierarchy; semantic risk colors; minimal card count; content-first table and detail panel.
+- Required states/accessibility/responsive expectations: visible loading/not-applicable only when needed; empty/CSV-error/AI-unavailable states; keyboard reachable interactive controls; visible focus; readable labels/contrast; no horizontal breakage at target viewport.
+- AI settings UX when applicable: compact settings/dialog with endpoint/model plus masked token; explicit «Проверить соединение» and status; no secret echo/persistence; explain re-entry after reload.
 
 ## Open blockers
 
-- none
+- none. Optional AI provider/browser readiness is unresolved but explicitly non-blocking.
