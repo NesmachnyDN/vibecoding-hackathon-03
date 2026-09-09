@@ -1,0 +1,101 @@
+# CODEX-RUN — autonomous bounded execution
+
+`workflow/NEXT_CODEX_TASK.md` is the self-contained task contract and context manifest. Optimize for minimum context loading as well as minimum implementation scope.
+
+The launcher must carry `EXPECTED_TASK_ID=<actual TASK_ID>`. Never trust the task file from the branch that happened to be checked out when Codex starts.
+
+## 0. Pre-run orchestration freshness gate — before reading NEXT
+
+Inspect `git status --short`, current branch, remotes and refs before any checkout-changing operation. Never overwrite unexpected user changes.
+
+If the index or worktree is dirty, stop `BLOCKED` before switching branches or synchronizing orchestration state.
+
+Read only the repository-topology keys from the local `workflow/STATE.md` needed to identify the orchestration remote; do **not** read `workflow/NEXT_CODEX_TASK.md` yet.
+
+- `GITHUB_PRIMARY`: orchestration source is `origin/main`.
+- allowed GitLab/V-Works mirror: orchestration source is `github/main`; official product history remains `origin`.
+- `*_ONLY`: use only the configured official remote; never create an external mirror.
+
+For the selected orchestration remote run a safe fetch such as `git fetch --prune <remote> main`. Fetch must not mutate the working tree.
+
+Refresh local `main` without history rewriting:
+
+1. If local `main` does not exist but `<remote>/main` does, create a tracking `main` from that remote ref.
+2. If local `main` is ahead of or diverged from `<remote>/main`, stop `BLOCKED`; do not reset, rebase, force-push or discard local commits.
+3. If the current branch is not `main` and the worktree is clean, `git switch main`.
+4. Fast-forward only with `git merge --ff-only <remote>/main` (or an equivalent non-rewriting fast-forward operation).
+5. Verify local `main` and the orchestration ref resolve to the same commit before loading the active task.
+
+Only after that synchronization read refreshed `workflow/STATE.md` and `workflow/NEXT_CODEX_TASK.md`.
+
+Compare all three values:
+
+- launcher `EXPECTED_TASK_ID`;
+- `STATE.CURRENT_TASK_ID`;
+- `NEXT_CODEX_TASK.TASK_ID`.
+
+They must be identical and not `NONE`. On mismatch, stop `BLOCKED`, report the three IDs plus local/remote main SHAs, and make no product edits. This is the stale-checkout guard.
+
+After the task is validated, resolve `BASE_BRANCH` and `TARGET_BRANCH` from NEXT. Stay on `main` when the task targets main. Otherwise switch/create the target branch safely from the refreshed base. If an existing target branch needs the refreshed base/orchestration state, integrate it with normal non-rewriting Git; a merge conflict or unsafe history condition is `BLOCKED`. Do not execute the task from a branch that still carries an older NEXT contract.
+
+## 1. Repository and one-time mirror setup
+
+Read topology from the refreshed `workflow/STATE.md`.
+
+- `GITHUB_PRIMARY`: `origin` is official.
+- allowed mirror: official GitLab/V-Works must be `origin`, GitHub control plane `github`.
+- `*_ONLY`: never create GitHub mirror.
+
+If `REMOTE_SETUP_STATUS=PENDING_CODEX_SETUP`, perform the one-time non-rewriting setup before product work: configure the approved remotes, fetch, verify safe DAG compatibility to the extent required, synchronize compatible main history, verify parity, set setup READY and commit/sync that state. Never force/rebase/reset/cherry-pick to manufacture parity. A real topology/history conflict is BLOCKED.
+
+## 2. Load minimum context
+
+For IMPLEMENT/FIX/CONTINUE read only:
+
+1. `AGENTS.md`
+2. `workflow/STATE.md`
+3. `workflow/NEXT_CODEX_TASK.md`
+4. the task's explicit `## Context pack`
+5. the smallest source/test files needed for the requested change.
+
+Do not preload the repository README or the full SPEC/PLAN/QUALITY/DELIVERY/AI/EVIDENCE/SUBMISSION set.
+
+Treat the task `Resolved contract snapshot`, scope, acceptance criteria and Required checks as the execution contract. If one execution-critical fact is genuinely absent, open only the single canonical document that owns it, report that context-pack gap, and continue if safe.
+
+For FINALIZE, load the broader finalization pack and always include `docs/QUALITY.md`, `docs/EVIDENCE.md` and `docs/SUBMISSION.md`.
+
+## 3. Execute smallest complete change
+
+Follow only In scope. Preserve ownership/dependency/security boundaries. Do not add runtime/framework/database/container/supporting service without a resolved Must/official/security/reproducibility reason.
+
+Use the resolved task snapshot for delivery/CI/UI/AI decisions. Read full `docs/DELIVERY.md` or `docs/AI.md` only when the Context pack explicitly requires them or a concrete missing fact blocks safe execution.
+
+## 4. Verify
+
+IMPLEMENT/FIX/CONTINUE: apply the compact iteration baseline from AGENTS plus every task Required checks item. Read full `docs/QUALITY.md` only when the Context pack lists it.
+
+FINALIZE: apply the full FINAL gate in `docs/QUALITY.md`.
+
+Record exact commands/scenarios/results; unrun check is never PASS. Fix concrete in-scope defects and rerun affected checks. Do not expand into optional polish.
+
+## 5. Evidence and finalize
+
+For an ordinary iteration, do not preload `docs/EVIDENCE.md`. Open it only after verification when a demonstrated capability/fact actually needs to be recorded, then update only that fact.
+
+For FINALIZE:
+1. complete product/evidence verification;
+2. commit accepted content baseline;
+3. record its SHA and final facts in `docs/SUBMISSION.md`;
+4. apply FINAL gate;
+5. set READY only if it passes; otherwise leave NOT_READY/BLOCKED;
+6. commit final process metadata, push required remotes and verify current main parity.
+
+## 6. Commit/push/stop
+
+IMPLEMENT/FIX/CONTINUE: commit target branch and push required remotes; verify required parity. Do not merge unless NEXT task mode requires integration.
+
+FINALIZE: integrate accepted work to main using normal history-preserving Git, no new features, push/sync all required remotes and verify current main parity.
+
+Final response: status; branch/commit; **context actually loaded**; quality result; exact verification; applicable AI/CI/delivery/UI/security; evidence/submission changes; observed refs/parity; blockers only.
+
+After push stop. Review chooses the next action.
