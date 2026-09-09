@@ -43,12 +43,13 @@
       line-height: 1.45;
     }
 
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
 
-    button, input, [tabindex] { outline: none; }
+    button, input, select, [tabindex] { outline: none; }
 
     button:focus-visible,
     input:focus-visible,
+    select:focus-visible,
     summary:focus-visible {
       outline: 3px solid rgba(23, 105, 224, 0.28);
       outline-offset: 2px;
@@ -131,6 +132,49 @@
       border-radius: 8px;
       color: var(--danger);
       background: var(--critical-bg);
+    }
+
+    .data-panel {
+      display: grid;
+      grid-template-columns: minmax(290px, 1.25fr) minmax(300px, 1fr);
+      gap: 18px;
+      margin-bottom: 16px;
+      padding: 14px 18px;
+    }
+
+    .data-group { min-width: 0; }
+    .data-group h2 { margin-bottom: 8px; font-size: 14px; }
+    .data-row { display: flex; align-items: end; gap: 8px; }
+    .data-row .field { flex: 1 1 auto; }
+    .data-row input[type="file"] {
+      width: 100%;
+      min-height: 36px;
+      padding: 6px 8px;
+      border: 1px solid #bec8d7;
+      border-radius: 7px;
+      background: #fff;
+      font-size: 12px;
+    }
+    .data-row input[type="file"]::file-selector-button {
+      margin-right: 8px;
+      border: 0;
+      color: var(--brand-dark);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .import-message { min-height: 18px; margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+    .import-message[data-state="success"] { color: var(--low); }
+    .import-message[data-state="error"] { color: var(--danger); }
+    .filter-row { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 8px; }
+    .field select {
+      width: 100%;
+      height: 36px;
+      padding: 0 30px 0 10px;
+      border: 1px solid #bec8d7;
+      border-radius: 7px;
+      color: var(--ink);
+      background: #fff;
     }
 
     .portfolio-grid {
@@ -376,6 +420,7 @@
     [hidden] { display: none !important; }
 
     @media (max-width: 1100px) {
+      .data-panel { grid-template-columns: 1fr; }
       .portfolio-grid { grid-template-columns: 1fr; }
       .ai-form { grid-template-columns: 1.3fr 1fr 1fr; }
       .ai-form .field:first-child { grid-column: auto; }
@@ -396,6 +441,8 @@
       .ai-form { grid-template-columns: 1fr; }
       .ai-form .field:first-child { grid-column: auto; }
       .button-row { grid-column: auto; flex-wrap: wrap; }
+      .data-row { align-items: stretch; flex-direction: column; }
+      .filter-row { grid-template-columns: 1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -412,7 +459,7 @@
         <p class="brand-subtitle">Портфель руководителя</p>
       </div>
     </div>
-    <div class="dataset-label">Демонстрационные данные · 6 проектов</div>
+    <div class="dataset-label" id="dataset-label">Демонстрационные данные · 6 проектов · показано 6</div>
   </header>
 
   <main>
@@ -421,12 +468,47 @@
         <h1>Состояние портфеля</h1>
         <p>Приоритеты рассчитаны по просрочке, открытым рискам и выполнению.</p>
       </div>
-      <span class="updated">Данные встроены в приложение</span>
+      <span class="updated" id="source-note">Данные встроены в приложение</span>
     </div>
 
     <div id="app-error" class="error-banner" role="alert" hidden>
       Не удалось рассчитать демонстрационный портфель. Обновите страницу.
     </div>
+
+    <section class="panel data-panel" aria-label="Данные и фильтры">
+      <div class="data-group">
+        <h2>Источник данных</h2>
+        <div class="data-row">
+          <div class="field">
+            <label for="csv-file">CSV до 2 МиБ</label>
+            <input id="csv-file" type="file" accept=".csv,.txt,text/csv,text/plain">
+          </div>
+          <button class="secondary-button" id="restore-demo" type="button">Демонстрационные данные</button>
+        </div>
+        <p class="import-message" id="import-message" data-state="idle" aria-live="polite">Выберите CSV с обязательными русскими заголовками.</p>
+      </div>
+      <div class="data-group">
+        <h2>Фильтры</h2>
+        <div class="filter-row">
+          <div class="field">
+            <label for="risk-filter">Уровень риска</label>
+            <select id="risk-filter">
+              <option value="all">Все</option>
+              <option value="low">Низкий</option>
+              <option value="medium">Средний</option>
+              <option value="high">Высокий</option>
+              <option value="critical">Критический</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="stage-filter">Этап</label>
+            <select id="stage-filter">
+              <option value="all">Все</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="portfolio-grid" aria-label="Обзор портфеля">
       <article class="panel summary-panel">
@@ -493,7 +575,7 @@
         </div>
         <div class="table-scroll">
           <table>
-            <caption class="visually-hidden">Демонстрационные проекты и рассчитанные уровни риска</caption>
+            <caption class="visually-hidden">Проекты и рассчитанные уровни риска</caption>
             <thead>
               <tr>
                 <th scope="col">Проект</th>
@@ -521,7 +603,7 @@
     (() => {
       'use strict';
 
-      const PROJECTS = Object.freeze([
+      const DEMO_PROJECTS = Object.freeze([
         Object.freeze({ id: 'mobile-office', name: 'Мобильный кабинет', stage: 'Разработка', completion: 72, overdueDays: 4, openRisks: 3, criticalRisks: 1, comment: 'Не согласован новый срок интеграционного тестирования' }),
         Object.freeze({ id: 'digital-archive', name: 'Электронный архив', stage: 'Тестирование', completion: 91, overdueDays: 0, openRisks: 1, criticalRisks: 0, comment: 'Испытания идут по плану' }),
         Object.freeze({ id: 'payment-gateway', name: 'Платёжный шлюз', stage: 'Разработка', completion: 58, overdueDays: 12, openRisks: 5, criticalRisks: 2, comment: 'Не получен доступ к внешнему тестовому контуру' }),
@@ -572,11 +654,15 @@
         return `${actions[0][0].toUpperCase()}${actions[0].slice(1)}${actions.slice(1).map((action) => `; ${action}`).join('')}.`;
       }
 
-      const evaluatedProjects = PROJECTS.map((project) => Object.freeze({
-        ...project,
-        risk: calculateRisk(project),
-        recommendation: recommendedAction(project)
-      }));
+      function evaluateProjects(projects) {
+        return Object.freeze(projects.map((project) => Object.freeze({
+          ...project,
+          risk: calculateRisk(project),
+          recommendation: recommendedAction(project)
+        })));
+      }
+
+      const evaluatedDemoProjects = evaluateProjects(DEMO_PROJECTS);
 
       function portfolioFacts(projects) {
         const distribution = { low: 0, medium: 0, high: 0, critical: 0 };
@@ -600,6 +686,179 @@
           && facts.distribution.high === 1 && facts.distribution.critical === 2
           && facts.top.every((project, index) => project.name === expectedTop[index]);
         if (!scoresMatch || !factsMatch) throw new Error('Fixture contract mismatch');
+      }
+
+      const CSV_HEADERS = Object.freeze([
+        'Проект',
+        'Этап',
+        'Выполнение, %',
+        'Просрочка, дней',
+        'Открытые риски',
+        'Критические риски',
+        'Комментарий'
+      ]);
+      const MAX_CSV_SIZE = 2 * 1024 * 1024;
+
+      function parseCsvRecords(text, delimiter) {
+        const records = [];
+        let row = [];
+        let field = '';
+        let fieldWasQuoted = false;
+        let inQuotes = false;
+        let afterQuote = false;
+        let line = 1;
+        let rowLine = 1;
+
+        function finishField() {
+          row.push(fieldWasQuoted ? field : field.trim());
+          field = '';
+          fieldWasQuoted = false;
+          afterQuote = false;
+        }
+
+        function finishRow() {
+          finishField();
+          records.push(Object.freeze({ values: Object.freeze(row), line: rowLine }));
+          row = [];
+          rowLine = line + 1;
+        }
+
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          if (inQuotes) {
+            if (character === '"') {
+              if (text[index + 1] === '"') {
+                field += '"';
+                index += 1;
+              } else {
+                inQuotes = false;
+                afterQuote = true;
+              }
+            } else {
+              field += character;
+              if (character === '\n') line += 1;
+            }
+            continue;
+          }
+
+          if (afterQuote) {
+            if (character === ' ' || character === '\t') continue;
+            if (character === delimiter) {
+              finishField();
+              continue;
+            }
+            if (character === '\r' || character === '\n') {
+              finishRow();
+              if (character === '\r' && text[index + 1] === '\n') index += 1;
+              line += 1;
+              continue;
+            }
+            throw new Error(`Строка ${line}: неожиданный символ после закрывающей кавычки.`);
+          }
+
+          if (character === '"') {
+            if (field.trim()) throw new Error(`Строка ${line}: кавычка внутри некавыченного поля.`);
+            field = '';
+            fieldWasQuoted = true;
+            inQuotes = true;
+          } else if (character === delimiter) {
+            finishField();
+          } else if (character === '\r' || character === '\n') {
+            finishRow();
+            if (character === '\r' && text[index + 1] === '\n') index += 1;
+            line += 1;
+          } else {
+            field += character;
+          }
+        }
+
+        if (inQuotes) throw new Error(`Строка ${rowLine}: не закрыта кавычка.`);
+        if (field || fieldWasQuoted || afterQuote || row.length) finishRow();
+        return records;
+      }
+
+      function isBlankRecord(record) {
+        return record.values.every((value) => value.trim() === '');
+      }
+
+      function inspectCsvCandidate(text, delimiter) {
+        try {
+          const records = parseCsvRecords(text, delimiter);
+          const headerIndex = records.findIndex((record) => !isBlankRecord(record));
+          if (headerIndex < 0) return { delimiter, records, headerIndex, headers: [], matchCount: 0, valid: false };
+          const headers = records[headerIndex].values;
+          const counts = CSV_HEADERS.map((required) => headers.filter((header) => header === required).length);
+          return {
+            delimiter,
+            records,
+            headerIndex,
+            headers,
+            counts,
+            matchCount: counts.filter((count) => count === 1).length,
+            valid: counts.every((count) => count === 1)
+          };
+        } catch (error) {
+          return { delimiter, error, matchCount: -1, valid: false };
+        }
+      }
+
+      function parseAndValidateCsv(sourceText) {
+        const text = sourceText.replace(/^\uFEFF/, '');
+        const candidates = [inspectCsvCandidate(text, ';'), inspectCsvCandidate(text, ',')];
+        const candidate = candidates.find((item) => item.valid);
+        if (!candidate) {
+          const best = [...candidates].sort((left, right) => right.matchCount - left.matchCount)[0];
+          if (!best || best.error || best.headerIndex < 0) {
+            const detail = best && best.error ? ` ${best.error.message}` : '';
+            throw new Error(`CSV не содержит строку заголовков.${detail}`);
+          }
+          const missing = CSV_HEADERS.filter((_header, index) => best.counts[index] === 0);
+          const duplicate = CSV_HEADERS.filter((_header, index) => best.counts[index] > 1);
+          if (duplicate.length) throw new Error(`Заголовок «${duplicate[0]}» указан больше одного раза.`);
+          throw new Error(`Отсутствует обязательный заголовок «${missing[0]}».`);
+        }
+
+        const headerIndexes = Object.fromEntries(CSV_HEADERS.map((header) => [header, candidate.headers.indexOf(header)]));
+        const dataRecords = candidate.records.slice(candidate.headerIndex + 1).filter((record) => !isBlankRecord(record));
+        if (!dataRecords.length) throw new Error('CSV должен содержать хотя бы одну строку данных.');
+
+        function valueAt(record, header) {
+          return record.values[headerIndexes[header]] ?? '';
+        }
+
+        function requiredText(record, header) {
+          const value = valueAt(record, header).trim();
+          if (!value) throw new Error(`Строка ${record.line}, поле «${header}»: значение не должно быть пустым.`);
+          return value;
+        }
+
+        function integerValue(record, header, minimum, maximum) {
+          const rawValue = valueAt(record, header).trim();
+          if (!/^-?\d+$/.test(rawValue)) {
+            throw new Error(`Строка ${record.line}, поле «${header}»: требуется целое число.`);
+          }
+          const value = Number(rawValue);
+          if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+            const range = Number.isFinite(maximum) ? `от ${minimum} до ${maximum}` : `не меньше ${minimum}`;
+            throw new Error(`Строка ${record.line}, поле «${header}»: значение должно быть ${range}.`);
+          }
+          return value;
+        }
+
+        const projects = dataRecords.map((record, index) => {
+          const comment = valueAt(record, 'Комментарий').trim();
+          return Object.freeze({
+            id: `csv-${index + 1}`,
+            name: requiredText(record, 'Проект'),
+            stage: requiredText(record, 'Этап'),
+            completion: integerValue(record, 'Выполнение, %', 0, 100),
+            overdueDays: integerValue(record, 'Просрочка, дней', 0, Infinity),
+            openRisks: integerValue(record, 'Открытые риски', 0, Infinity),
+            criticalRisks: integerValue(record, 'Критические риски', 0, Infinity),
+            comment: comment || 'Комментарий не указан'
+          });
+        });
+        return evaluateProjects(projects);
       }
 
       function textNode(tag, className, value) {
@@ -646,6 +905,7 @@
         const empty = document.querySelector('#project-empty');
         rows.replaceChildren();
         empty.hidden = projects.length !== 0;
+        empty.textContent = 'По выбранным фильтрам проекты не найдены.';
 
         projects.forEach((project) => {
           const row = document.createElement('tr');
@@ -685,6 +945,13 @@
         const content = document.querySelector('#detail-content');
         const accent = document.querySelector('#detail-accent');
         content.replaceChildren();
+        if (!project) {
+          accent.style.background = 'var(--line)';
+          const title = textNode('h2', '', 'Нет выбранного проекта');
+          title.id = 'detail-title';
+          content.append(title, textNode('p', 'section-note', 'Измените фильтры, чтобы увидеть карточку проекта.'));
+          return;
+        }
         accent.style.background = LEVELS[project.risk.level].color;
 
         const titleRow = textNode('div', 'detail-title-row', '');
@@ -723,15 +990,147 @@
         content.append(titleRow, textNode('p', 'detail-stage', `Этап: ${project.stage}`), metrics, reasonsTitle, reasons, commentBlock, actionBlock);
       }
 
-      function setupProjectSelection(projects) {
+      const dashboardState = {
+        projects: evaluatedDemoProjects,
+        source: 'demo',
+        sourceName: '',
+        riskFilter: 'all',
+        stageFilter: 'all',
+        selectedId: ''
+      };
+
+      function filteredProjects() {
+        return dashboardState.projects.filter((project) => (
+          (dashboardState.riskFilter === 'all' || project.risk.level === dashboardState.riskFilter)
+          && (dashboardState.stageFilter === 'all' || project.stage === dashboardState.stageFilter)
+        ));
+      }
+
+      function highestRiskProject(projects) {
+        return projects.reduce((highest, project) => (
+          !highest || project.risk.score > highest.risk.score ? project : highest
+        ), null);
+      }
+
+      function updateSourceIndicator(visibleCount) {
+        const total = dashboardState.projects.length;
+        const label = document.querySelector('#dataset-label');
+        const updated = document.querySelector('#source-note');
+        if (dashboardState.source === 'demo') {
+          label.textContent = `Демонстрационные данные · ${total} проектов · показано ${visibleCount}`;
+          updated.textContent = 'Данные встроены в приложение';
+        } else {
+          label.textContent = `Импортированный CSV · ${total} проектов · показано ${visibleCount}`;
+          updated.textContent = `Локальный файл: ${dashboardState.sourceName}`;
+        }
+      }
+
+      function renderDashboard() {
+        const visible = filteredProjects();
+        if (!visible.some((project) => project.id === dashboardState.selectedId)) {
+          const nextProject = highestRiskProject(visible);
+          dashboardState.selectedId = nextProject ? nextProject.id : '';
+        }
+        const selected = visible.find((project) => project.id === dashboardState.selectedId) || null;
+        renderSummary(portfolioFacts(visible));
+        renderTable(visible, dashboardState.selectedId);
+        renderDetail(selected);
+        updateSourceIndicator(visible.length);
+      }
+
+      function rebuildStageOptions() {
+        const select = document.querySelector('#stage-filter');
+        const stages = [...new Set(dashboardState.projects.map((project) => project.stage))]
+          .sort((left, right) => left.localeCompare(right, 'ru'));
+        select.replaceChildren();
+        const allOption = textNode('option', '', 'Все');
+        allOption.value = 'all';
+        select.append(allOption);
+        stages.forEach((stage) => {
+          const option = textNode('option', '', stage);
+          option.value = stage;
+          select.append(option);
+        });
+        select.value = dashboardState.stageFilter;
+      }
+
+      function setupDataControls() {
+        const fileInput = document.querySelector('#csv-file');
+        const restoreButton = document.querySelector('#restore-demo');
+        const riskFilter = document.querySelector('#risk-filter');
+        const stageFilter = document.querySelector('#stage-filter');
+        const message = document.querySelector('#import-message');
+        let importRequest = 0;
+
+        function setImportMessage(state, value) {
+          message.dataset.state = state;
+          message.textContent = value;
+        }
+
+        function resetFilters() {
+          dashboardState.riskFilter = 'all';
+          dashboardState.stageFilter = 'all';
+          riskFilter.value = 'all';
+          stageFilter.value = 'all';
+        }
+
+        function replaceDataset(projects, source, sourceName) {
+          dashboardState.projects = projects;
+          dashboardState.source = source;
+          dashboardState.sourceName = sourceName;
+          resetFilters();
+          rebuildStageOptions();
+          dashboardState.selectedId = (highestRiskProject(projects) || {}).id || '';
+          renderDashboard();
+        }
+
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          const request = ++importRequest;
+          setImportMessage('pending', 'Проверяем CSV…');
+
+          try {
+            const allowedTypes = new Set(['', 'text/csv', 'application/csv', 'text/plain', 'application/vnd.ms-excel']);
+            if (!allowedTypes.has(file.type) || !/\.(csv|txt)$/i.test(file.name)) {
+              throw new Error('Выберите CSV- или TXT-файл.');
+            }
+            if (file.size > MAX_CSV_SIZE) throw new Error('Файл больше 2 МиБ. Выберите меньший CSV.');
+            const bytes = await file.arrayBuffer();
+            const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            const candidateProjects = parseAndValidateCsv(text);
+            if (request !== importRequest) return;
+            replaceDataset(candidateProjects, 'import', file.name);
+            setImportMessage('success', `Загружено проектов: ${candidateProjects.length}. Фильтры сброшены.`);
+          } catch (error) {
+            if (request !== importRequest) return;
+            const detail = error instanceof TypeError ? 'Файл не является корректным UTF-8 текстом.' : error.message;
+            setImportMessage('error', `CSV не загружен. ${detail}`);
+          }
+        });
+
+        restoreButton.addEventListener('click', () => {
+          importRequest += 1;
+          fileInput.value = '';
+          replaceDataset(evaluatedDemoProjects, 'demo', '');
+          setImportMessage('idle', 'Выберите CSV-файл или продолжайте работу с демоданными.');
+        });
+
+        riskFilter.addEventListener('change', () => {
+          dashboardState.riskFilter = riskFilter.value;
+          renderDashboard();
+        });
+        stageFilter.addEventListener('change', () => {
+          dashboardState.stageFilter = stageFilter.value;
+          renderDashboard();
+        });
         document.querySelector('#project-rows').addEventListener('click', (event) => {
           const button = event.target.closest('[data-select-project]');
-          if (!button) return;
-          const selected = projects.find((project) => project.id === button.dataset.selectProject);
-          if (!selected) return;
-          renderTable(projects, selected.id);
-          renderDetail(selected);
-          document.querySelector(`[data-select-project="${selected.id}"]`).focus();
+          if (!button || !filteredProjects().some((project) => project.id === button.dataset.selectProject)) return;
+          dashboardState.selectedId = button.dataset.selectProject;
+          renderDashboard();
+          [...document.querySelectorAll('[data-select-project]')]
+            .find((candidate) => candidate.dataset.selectProject === dashboardState.selectedId)?.focus();
         });
       }
 
@@ -854,13 +1253,12 @@
       }
 
       try {
-        const facts = portfolioFacts(evaluatedProjects);
-        assertFixture(evaluatedProjects, facts);
-        const initialProject = facts.top[0] || evaluatedProjects[0];
-        renderSummary(facts);
-        renderTable(evaluatedProjects, initialProject && initialProject.id);
-        if (initialProject) renderDetail(initialProject);
-        setupProjectSelection(evaluatedProjects);
+        const facts = portfolioFacts(evaluatedDemoProjects);
+        assertFixture(evaluatedDemoProjects, facts);
+        dashboardState.selectedId = (facts.top[0] || evaluatedDemoProjects[0]).id;
+        rebuildStageOptions();
+        setupDataControls();
+        renderDashboard();
         setupAiConnection();
       } catch (_error) {
         document.querySelector('#app-error').hidden = false;
