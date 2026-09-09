@@ -1,125 +1,139 @@
 # Next Codex Task
 
-TASK_ID: I001
-MODE: IMPLEMENT
+TASK_ID: I002
+MODE: CONTINUE
 QUALITY_GATE_PROFILE: ITERATION
 BASE_BRANCH: main
-TARGET_BRANCH: feat/i001-core-dashboard
-APPROVED_BRANCH: NONE
-SOURCE_REVIEW: INTAKE
+TARGET_BRANCH: feat/i002-csv-filters
+APPROVED_BRANCH: feat/i001-core-dashboard
+SOURCE_REVIEW: I001_PASS
 CONTEXT_MODE: MINIMAL
 
 ## Goal
 
-Создать первый работающий вертикальный срез «Контроль проектных рисков»: один self-contained `index.html`, который на демонстрационных данных рассчитывает объяснимый риск, даёт руководителю портфельный обзор и детальную карточку проекта. Одновременно создать безопасную optional-AI connection surface/readiness behavior, не делая AI зависимостью core.
+Закрыть оставшийся обязательный пользовательский поток работы с данными: добавить загрузку собственного CSV, безопасную валидацию с сохранением последнего рабочего состояния, возврат к демонстрационным данным и совместные фильтры по уровню риска и этапу. Все связанные представления должны пересчитываться без перезагрузки страницы.
 
 ## Resolved contract snapshot
 
-- Deliverable / delivery profile: `STATIC_SINGLE_FILE`; vanilla HTML/CSS/JavaScript; без framework/package manager/backend/container; canonical Must launch = direct-open `index.html`.
-- CI contract: `CI_REQUIRED:NO`; не создавать `.github/workflows`, package/toolchain только ради CI или build pipeline.
-- AI contract: `USE_AI` только как optional enhancement; core полностью deterministic. `OPERATOR_SESSION_BYOK`; endpoint/model/token вводит оператор, token только page-memory, masked, без source/config/localStorage/IndexedDB/cookies/URL/logs/echo. `AI_PROVIDER_READINESS=NOT_RUN`, `AI_BROWSER_DIRECT_READINESS=NOT_RUN`, debug budget 10 мин. Если live credential/path недоступен — зафиксировать NOT_RUN и продолжить core. Если browser/API check FAIL — показать понятный статус и оставить deterministic fallback; не добавлять backend только ради optional AI.
-- UI contract: профессиональный светлый management dashboard, content-first, laptop 1366×768 (usable ≥1024); semantic risk colors; явные focus/error/AI-status states; без card soup и декоративного filler.
-- Language / official hard gate relevant to this task: RU. Core обязан работать без внешнего API. Никаких реальных секретов в Git. Итоговая сдача позднее требует README, architecture description, risk algorithm and presentation.
+- Deliverable / delivery profile: сохранить `STATIC_SINGLE_FILE`; весь runtime остаётся в корневом `index.html` на vanilla HTML/CSS/JavaScript, без framework/package manager/backend/container.
+- CI contract: `CI_REQUIRED:NO`; не создавать project CI или toolchain ради этого среза.
+- AI contract: optional `USE_AI` остаётся неблокирующим; существующий `OPERATOR_SESSION_BYOK` connection surface и memory-only lifecycle сохранить без расширения. Live provider readiness в I002 не требуется, так как срез не AI-dependent. Не реализовывать AI-рекомендацию в этой задаче.
+- UI contract: RU, laptop-first 1366×768, usable ≥1024; новые controls должны быть компактными, keyboard-reachable, с ясными success/error/empty состояниями и без перегрузки dashboard.
+- Official hard gates relevant now: пользователь может использовать демоданные или загрузить CSV; фильтры минимум по уровню риска и этапу; invalid CSV не должен ломать рабочее состояние; core работает без внешнего API.
 
-Risk algorithm for this task:
-
+Скоринг и уровни риска не изменять:
 `score = min(100, min(30, overdueDays*3) + min(15, openRisks*3) + min(50, criticalRisks*25) + completionPenalty)`;
-`completionPenalty = 10` if `<50%`, `5` if `50–69%`, else `0`.
-Levels: 0–9 low; 10–24 medium; 25–49 high; 50–100 critical.
-Every non-zero component must appear as a human-readable reason.
+`completionPenalty = 10` при `<50%`, `5` при `50–69%`, иначе `0`; уровни 0–9 low, 10–24 medium, 25–49 high, 50–100 critical.
 
-Required demo fixture (do not silently change values):
+CSV logical schema:
+- `Проект`
+- `Этап`
+- `Выполнение, %`
+- `Просрочка, дней`
+- `Открытые риски`
+- `Критические риски`
+- `Комментарий`
 
-| Project | Stage | Completion | Overdue | Open risks | Critical risks | Comment |
-|---|---|---:|---:|---:|---:|---|
-| Мобильный кабинет | Разработка | 72 | 4 | 3 | 1 | Не согласован новый срок интеграционного тестирования |
-| Электронный архив | Тестирование | 91 | 0 | 1 | 0 | Испытания идут по плану |
-| Платёжный шлюз | Разработка | 58 | 12 | 5 | 2 | Не получен доступ к внешнему тестовому контуру |
-| Личный кабинет сотрудника | Проектирование | 45 | 2 | 2 | 0 | Требуется уточнить требования подразделения кадров |
-| Система отчётности | Внедрение | 96 | 7 | 4 | 1 | Обнаружена проблема производительности при формировании отчётов |
-| Каталог услуг | Разработка | 81 | 0 | 0 | 0 | Работы выполняются в соответствии с планом |
+CSV parser requirements:
+- UTF-8 text; tolerate UTF-8 BOM and CRLF/LF;
+- support comma and semicolon delimiters;
+- correctly handle quoted fields, escaped quotes and delimiters/newlines inside quoted values;
+- determine the delimiter by successful recognition of the required header set rather than naive character counting;
+- required headers must exist exactly once; extra columns may be ignored;
+- trim surrounding whitespace outside quoted content where safe;
+- require non-empty project/stage; comment may be empty and then render a neutral «Комментарий не указан» value;
+- numeric fields are integers; completion must be 0..100; overdue/open/critical risks must be >=0;
+- require at least one valid data row; reject the whole import on any invalid row and report row/field context without replacing the currently working dataset.
 
-Expected scores/levels: 46/high; 3/low; 100/critical; 22/medium; 58/critical; 0/low in the same row order.
-Expected portfolio facts: total=6; high+critical=3; no-overdue=2; distribution low=2, medium=1, high=1, critical=2; top three by score = Платёжный шлюз, Система отчётности, Мобильный кабинет.
+State behavior:
+- successful CSV import atomically replaces the active dataset, resets filters to «Все», rebuilds stage options and selects an appropriate first/top project;
+- «Демонстрационные данные» restores the exact six-row fixture, clears import error/success state and resets filters;
+- filtering is AND-combined: risk level + exact stage;
+- table, KPI/distribution/top list and detail selection must stay consistent with the filtered set; if the selected project leaves the filtered set, select the highest-risk visible project (or first visible on tie); for an empty filtered set show a clear empty state and no stale detail from a hidden project;
+- dataset/source indicator should make clear whether demo data or imported CSV is active and how many projects are in the active dataset/visible subset.
 
 ## Context pack
 
-- NONE
+- `index.html`
 
-Task contract above intentionally contains the needed greenfield facts. Do not preload all process docs.
+Do not preload SPEC/PLAN/QUALITY/DELIVERY/AI/EVIDENCE/SUBMISSION; the execution-relevant contract is copied above.
 
 ## Owning context / invariants
 
-- `index.html` owns the entire runtime for this slice; keep CSS/JS embedded and logically sectioned rather than adding runtime files/dependencies.
-- Risk scoring/reasons/recommendation must be deterministic pure logic, separate from DOM rendering even inside the single file.
-- AI output never influences risk score/level.
-- Demo data is synthetic and embedded; no persistence required.
-- Keep core usable with network disabled and without AI credentials.
+- `index.html` remains the only runtime artifact and owns active dataset/filter/UI state.
+- Existing pure risk scoring and deterministic recommendation logic remain the single source of truth for demo and imported rows.
+- Import is atomic: parse/validate/evaluate into a candidate dataset first; commit to active UI state only after complete success.
+- User file content is untrusted; insert values only via safe text APIs (`textContent`/created text nodes), never `innerHTML`.
+- No persistence, database or browser storage is introduced.
 
 ## Expected reuse
 
-- none; greenfield product implementation.
+- Reuse existing `calculateRisk`, `recommendedAction`, `portfolioFacts`, rendering and project-selection logic; refactor only as needed to support mutable active datasets and filters without duplicating business rules.
 
 ## Task-specific security / AI / delivery / CI / UI deltas
 
-- At the start, determine whether a safe live operator credential/path is actually available without searching for or printing secrets. If unavailable, record AI readiness `NOT_RUN` and proceed; do not spend time trying to discover credentials.
-- If available, use the exact browser/open mode intended for the demo to test endpoint/model/token acceptance and CORS/origin within 10 minutes. Classify provider/browser failure separately from core product status.
-- Implement a compact AI settings/connection area with endpoint, model and masked token plus explicit «Проверить соединение» status. A failed/empty AI config must never look like success.
-- Do not yet implement the final AI management recommendation generation beyond what is strictly needed for connection/readiness surface; that belongs to a later slice after review.
+- File input accepts CSV/text files only; no filesystem paths, uploads to servers or network transfer.
+- Bound the accepted file size to a reasonable demo-safe limit (for example 2 MiB) and surface a clear validation error when exceeded.
+- Preserve CSP and the current AI token guarantees; CSV work must not broaden `connect-src` or introduce storage/logging of token/file contents.
+- Do not start optional AI generation, Docker, backend or CI work.
 
 ## In scope
 
-1. Create self-contained `index.html` with embedded CSS/JS and the exact six-row demo fixture.
-2. Implement the scoring contract, risk labels/colors and explicit reason list.
-3. Render management KPIs: total, high+critical, no-overdue; render risk distribution and top three problematic projects.
-4. Render project table with visually clear risk status; selecting a project shows all metrics, reasons, source comment and a deterministic recommended next action derived from its metrics.
-5. Implement professional laptop-first layout and meaningful empty/error/disabled/focus states needed by this slice.
-6. Implement optional-AI settings/connection readiness surface as described; keep token memory-only and core fully independent.
-7. Update README only as needed so the actual first-run and subsequent-run instructions exactly match the implemented direct-open path.
-8. After verification, update only factual changed capability/readiness/delivery evidence in `docs/EVIDENCE.md`.
+1. Add compact data controls: choose CSV file, import status/error, and explicit restore-demo action.
+2. Implement robust dependency-free CSV parsing/validation per the contract above.
+3. Replace the active dataset atomically on successful import and recompute scoring/dashboard/detail from the imported rows.
+4. Add risk-level and stage filters with AND semantics; stage options derive from the active dataset.
+5. Keep KPI/distribution/top/table/detail consistent with the filtered subset, including empty-result behavior.
+6. Preserve and regression-check existing demo scoring, detail, AI-unavailable behavior, accessibility and direct-open delivery.
+7. Update README only where the real demo/user flow changes; do not change the canonical direct-open launch model.
+8. After verification, update only factual changed capability/verification evidence in `docs/EVIDENCE.md`.
 
 ## Out of scope
 
-- CSV file upload/parsing and schema-error recovery (S2).
-- Risk/stage filtering controls (S2).
-- Final AI-generated project recommendation (S3, only after provider/readiness outcome).
-- Backend, Python/Node server, database, Docker/Compose, package manager/framework.
+- Optional AI-generated management recommendation / live provider integration beyond the existing connection check.
+- New scoring heuristics or changes to the six-row demo fixture.
+- Backend, Python/Node runtime, database, Docker/Compose, package manager/framework.
 - Project CI.
-- Presentation/final submission work.
-- Unrelated refactor/process-document rewrite.
+- Presentation/final submission/finalization work.
+- Cosmetic redesign unrelated to the new controls/states.
 
 ## Acceptance criteria
 
-- AC-002 → exact six fixture scores/levels match: 46/high, 3/low, 100/critical, 22/medium, 58/critical, 0/low; UI exposes score reasons.
-- AC-003 → dashboard on fixture shows total=6, high+critical=3, no-overdue=2, distribution 2/1/1/2 and top three in required order.
-- AC-005 → selecting «Платёжный шлюз» shows its metrics, score reasons, original comment and a deterministic actionable recommendation.
-- AC-006(partial) → with empty/failed AI configuration the dashboard/detail remain fully usable and AI area shows a clear unavailable/not-configured/error state without fake success.
-- AC-008(partial) → main flow is visually coherent and readable at 1366×768 with semantic distinction of high/critical projects and usable focus states.
-- AC-009 → clean committed state requires no project dependency installation/build; direct opening of `index.html` is the documented and verified canonical path.
+- AC-001 → app starts on the exact six-row demo fixture; a valid CSV matching the logical schema replaces the dataset and all dependent views; invalid CSV gives a specific understandable error and leaves the previous dataset/results unchanged; restore-demo returns exactly to the original six projects.
+- AC-004 → risk and stage filters combine with AND semantics and consistently update table, KPI/distribution/top list and detail selection without reload; zero-result filtering shows an explicit empty state without stale hidden-project detail.
+- AC-002/AC-003 regression → restored demo fixture still produces scores 46/3/100/22/58/0 and portfolio facts 6 total, 3 high+critical, 2 no-overdue, distribution 2/1/1/2, top three in the established Russian names/order.
+- AC-005 regression → after restore-demo, selecting «Платёжный шлюз» still shows 58%, 12 days, 5 open / 2 critical, all non-zero score reasons, original comment and deterministic action.
+- AC-006 regression → CSV/filter errors and empty AI settings do not break deterministic core; no fake AI success.
+- AC-008 → import/filter controls are readable and keyboard-usable at 1366×768 and ≥1024px, with visible focus and understandable error/empty/success feedback.
+- AC-009 regression → clean checkout and subsequent run still require only direct opening of `index.html`; no install/build step added.
 
 ## Required checks
 
-1. Before AI-dependent work, apply the bounded readiness gate above. Do not claim PASS without an actual live browser request. If no credential/path is available, record `NOT_RUN` and continue deterministic implementation.
-2. Open committed `index.html` from the repository root using the canonical direct-file browser path; verify no uncaught console error on initial load.
-3. Verify all six fixture scores/levels and the aggregate portfolio facts listed in this task exactly.
-4. Select «Платёжный шлюз» and verify metric values, reason list, original comment and deterministic action are visible.
-5. Verify the core still works with AI settings empty; trigger one safe invalid/unreachable AI connection case and confirm a clear error/unavailable state with no core regression.
-6. Inspect runtime code/browser storage behavior: no token in source, DOM echo, URL, logs, `localStorage`, IndexedDB or cookies; reload/close loses entered token.
-7. Check layout manually at 1366×768 (and at least 1024px width) for clipping/critical control accessibility; keyboard-tab through primary controls.
-8. Run `git diff --check` and any focused static/browser checks introduced by the implementation; do not add a dependency/toolchain solely to satisfy this line.
-9. Update `docs/EVIDENCE.md` only with observed results; unrun live AI remains NOT_RUN.
-10. Commit to `feat/i001-core-dashboard`, push to `origin`, and verify pushed branch SHA equals the local task commit SHA.
+1. Start from refreshed `main` and verify it contains accepted I001 commit/content before creating `feat/i002-csv-filters`.
+2. Direct-open committed `index.html` through the canonical `file://` path; confirm the restored/demo baseline still matches all six established scores and aggregate facts exactly.
+3. Import a valid semicolon-delimited CSV with at least three rows, including one quoted comment containing a semicolon and one empty comment. Verify row count, scores/levels, source indicator and dashboard/detail recomputation.
+4. Import a valid comma-delimited CSV whose two comma-containing header names are correctly quoted; verify the same parser path accepts it.
+5. Verify atomic failure with at least: missing required header; completion outside 0..100; non-integer risk value; oversized file. After each failure confirm the previously active dataset, filters and selected/detail state remain usable and unchanged unless the contract explicitly resets only error text.
+6. On an imported dataset containing at least one `Разработка` high/critical project and other stages/levels, apply risk + stage filters together and verify only the intersection remains; KPI/distribution/top/detail correspond to that visible subset.
+7. Force a zero-result filter combination and verify table/summary/detail do not display stale data from a filtered-out project; then clear filters and verify full active dataset returns.
+8. Restore demo data and verify exact original fixture, dynamic stage options, cleared filters and original score/portfolio regressions.
+9. Regression-check optional AI with empty config and one safe unreachable endpoint: core remains usable and token lifecycle/storage behavior from I001 is unchanged.
+10. Inspect untrusted CSV rendering path: no imported values reach `innerHTML`; no file content/token is persisted/logged; CSP and direct-open delivery remain intact.
+11. Check layout at 1366×768 and 1024×768 plus keyboard tab order through data controls, filters, AI controls and project selectors; verify no demo-critical clipping.
+12. Run `git diff --check` and any focused static/browser assertions introduced; do not add dependency/toolchain solely for tests.
+13. Update `docs/EVIDENCE.md` only with actually observed results; unrun live AI remains NOT_RUN.
+14. Commit to `feat/i002-csv-filters`, push to `origin`, and verify remote branch head SHA equals the completed local task commit SHA.
 
 ## Stop only when
 
 - topology/history conflict cannot be safely reconciled;
 - unexpected user changes would be overwritten;
-- unresolved ownership/data-integrity/security decision blocks the active contract;
-- direct browser execution of the deterministic Must slice is genuinely unavailable;
+- direct-file browser APIs needed for local CSV import are genuinely unavailable;
+- unresolved data-integrity/security issue prevents atomic safe import;
 - task conflicts with official rules or resolved contract.
 
-Optional AI/provider unavailability is not a stop condition for I001.
+Optional AI/provider unavailability is not a stop condition for I002.
 
 ## Notes
 
-Use the compact ITERATION baseline from AGENTS plus Required checks. Do not expand into CSV/filter/AI-generation/finalization scope.
+This is the remaining Must-completion slice. Keep the change focused on data import/filtering/error recovery and regressions; do not consume time on optional AI generation or final presentation work.
